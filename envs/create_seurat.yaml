@@ -1,0 +1,12 @@
+name: create_seurat_new
+channels:
+    - bioconda
+    - conda-forge
+    - local
+dependencies:
+    - r=3.5.1
+    - r-ggrepel=0.8.0
+    - r-seurat=2.3.4
+    - bioconductor-biobase=2.42.0
+    - umap-learn=0.3.8
+    - /home/kwells4/anaconda3/conda-bld/linux-64/mtec.10x.pipeline-0.0.0.9100-r351_1.tar.bz2

@@ -1,0 +1,86 @@
+##### input information #####
+# Sample info. Includes: reference (path), gtf (path), allSamples (bool), Controls (bool)
+mapping_sample: aireTrace
+samples:
+    aireTrace:
+        reference:
+            /home/kwells4/kwells4/cellranger/mm10_GFP_RFP
+        gtf:
+            /home/kwells4/kwells4/cellranger/mm10_GFP_RFP/genes/genes.gtf
+        allSamples:
+            True
+        Controls:
+            False
+    isoControlBeg:
+        reference:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0
+        gtf:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0/genes/genes.gtf
+        allSamples:
+            True
+        Controls:
+            True
+    timepoint1:
+        reference:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0
+        gtf:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0/genes/genes.gtf
+        allSamples:
+            True
+        Controls:
+            False
+    timepoint2:
+        reference:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0
+        gtf:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0/genes/genes.gtf
+        allSamples:
+            True
+        Controls:
+            False
+    timepoint3:
+        reference:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0
+        gtf:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0/genes/genes.gtf
+        allSamples:
+            True
+        Controls:
+            False
+    timepoint5:
+        reference:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0
+        gtf:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0/genes/genes.gtf
+        allSamples:
+            True
+        Controls:
+            False
+    isoControlEnd:
+        reference:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0
+        gtf:
+            /home/kwells4/kwells4/cellranger/refdata-cellranger-mm10-1.2.0/genes/genes.gtf
+        allSamples:
+            True
+        Controls:
+            True
+
+# seurat project name
+project: RankL_ablation
+
+# Path to data_dir
+data_dir: /home/kwells4/mTEC_dev/data/
+
+# memory to allow cell ranger to use
+mem: 100
+
+# All files required to make the figure. Paths relative to the directory containing the
+# Snakefile. Add in progenitor file
+fig_files:
+    - aireTrace/analysis_outs/seurat_aireTrace.rda
+    - controls/analysis_outs/seurat_controls_merged.rda
+    - allSamples/analysis_outs/seurat_allSamples_combined.rda
+    - controls/analysis_outs/controls_merged_slingshot.rda
+    - allSamples/analysis_outs/allSamples_combined_slingshot.rda
+    - allSamples/analysis_outs/seurat_allSamples_Early_Aire_combined.rda

@@ -1,0 +1,52 @@
+{
+    "__default__": {
+        "account": "larsms",
+        "job-name": "10x",
+        "time": "1:00:00",
+        "ntasks": 1,
+        "cpus-per-task": 1,
+        "nodes": 1,
+        "mem": "4G",
+        "partition": "batch",
+        "mail": "kwells4@stanford.edu",
+        "type": "FAIL"
+    },
+    "mkfastq": {
+        "job-name": "mkfastq",
+        "time": "2:00:00",
+        "cpus-per-task": 30,
+        "mem": "24G",
+        "type": "BEGIN,END,FAIL"
+    },
+    "count": {
+        "job-name": "count",
+        "time": "1-00:00:00",
+        "cpus-per-task": 30,
+        "mem": "100G",
+        "type":"BEGIN,END,FAIL"
+    },
+    "final_analysis": {
+        "job-name": "Rscript",
+        "time": "06:00:00"
+    },
+    "combine_samples": {
+        "job-name": "CCA",
+        "mem":"24G",
+        "time": "12:00:00"
+    },
+    "combined_analysis": {
+        "job-name": "Rscript",
+        "mem":"100G",
+        "time": "06:00:00"
+    },
+    "subset_combined": {
+        "job-name": "CCA",
+        "mem": "24G",
+        "time": "12:00:00"
+    },
+    "make_figures": {
+        "job-name": "figures",
+        "mem":"100G",
+        "time": "06:00:00"
+    }
+}

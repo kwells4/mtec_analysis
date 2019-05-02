@@ -1,0 +1,17 @@
+name: analysis_driver
+channels:
+    - bioconda
+    - conda-forge
+    - local
+dependencies:
+    - r=3.5.1
+    - r-ggrepel=0.8.0
+    - r-seurat=2.3.4
+    - r-ddrtree=0.1.5
+    - r-reshape=0.8.7
+    - bioconductor-biobase=2.42.0
+    - bioconductor-scran=1.10.1
+    - bioconductor-monocle=2.10.0
+    - bioconductor-slingshot=1.0.0
+    - umap-learn=0.3.8
+    - /home/kwells4/anaconda3/conda-bld/linux-64/mtec.10x.pipeline-0.0.0.9100-r351_1.tar.bz2

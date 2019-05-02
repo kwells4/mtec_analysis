@@ -1,0 +1,14 @@
+*/out_slurm/
+*.out
+*/*_count/
+*/*_mkfastq/
+*/*_mkfastq.mro
+*/*_raw_data/
+*/.snakemake
+*/analysis_outs/
+*/core*
+*.pdf
+*.DS_Store
+*/cache/
+._Snakefile
+.snakemake/
