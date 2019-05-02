@@ -6,25 +6,25 @@ To use:
 
 1. Download and install miniconda3: For Linux
 
-    wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh bash Miniconda3-latest-Linux-x86_64.sh
+	wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh bash Miniconda3-latest-Linux-x86_64.sh
 
 2. Copy this entire directory to where you wish to run this pipeline. Inside this directory:
   - make a directory for each file
 
-    mkdir {sample}
-    cd {sample}
-    mkdir {sample}_raw_data
+	mkdir {sample}
+	cd {sample}
+	mkdir {sample}_raw_data
 
   - move sample tarball and meta data tarball into the raw_data folder and untar.
   - Place the sample sheet named in the location {sample}/sample_sheet_{sample}.csv This must be repeated for all samples in the experiment.
 3. Install Snakemake:
 
-    conda install snakemake -c bioconda -c conda-forge
+	conda install snakemake -c bioconda -c conda-forge
 
 4. Download and extract the mouse reference genome
 
-    wget http://cf.10xgenomics.com/supp/cell-exp/refdata-cellranger-mm10-1.2.0.tar.gz
-    tar -xzvf refdata-cellranger-mm10-1.2.0.tar.gz
+	wget http://cf.10xgenomics.com/supp/cell-exp/refdata-cellranger-mm10-1.2.0.tar.gz
+	tar -xzvf refdata-cellranger-mm10-1.2.0.tar.gz
 
 5. Update the config file (config.yaml)
   - mapping_sample: The sample used to map clusters for the combined analysis
@@ -37,15 +37,15 @@ To use:
 
 To make a seurat object for all samples from the 10x run
 
-   snakemake --cores 30
+	snakemake --cores 30
 
 or submit with
 
-    sbatch analyze_individ.sh
+	sbatch analyze_individ.sh
 
 To make figures, it's best to submit this to the cluster using
 
-    sbatch submit_figures.sh
+	sbatch submit_figures.sh
 
 After running the submit_figures.sh script, there will be new directories for your combined analysis, and analysis_out directories in each sample directory containing images from the analysis. There will also be a "figure_output" director containing all figures.
 
