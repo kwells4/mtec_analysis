@@ -42,7 +42,7 @@ subset_name <- snakemake@params[[1]]
 pdf_file <- snakemake@params[[2]]
 output_file <- snakemake@output[[1]]
 
-mtecCombnied <- get(load(input_file))
+mtecCombined <- get(load(input_file))
 
 # Subset the Seurat object to be only the cell population for futher analysis
 mtecSub <- mtecCombined
@@ -99,21 +99,16 @@ mtecSubComb <- AlignSubspace(mtecSubComb, reduction.type = "cca",
                               dims.align = 1:10)
 
 # Determine tSNE coordinates based on CCA space (rather than PCA space)
-mtecSubComb <- RunTSNE(mtecSubComb, reduction.use = "cca.aligned", dims.use = 1:10, 
+mtecSubComb <- RunTSNE(mtecSubComb, reduction.use = "cca.aligned", dims.use = 1:7, 
                         do.fast = T, seed.use = 0)
 
 # Determine UMAP coordinates based on CCA space (rather than PCA space)
-mtecSubComb <- RunUMAP(mtecSubComb, reduction.use = "cca.aligned", dims.use = 1:10,
+mtecSubComb <- RunUMAP(mtecSubComb, reduction.use = "cca.aligned", dims.use = 1:7,
                         seed.use = 0)
 
 # Determine clusters based on CCA space (rather than PCA space)
 mtecSubComb <- FindClusters(mtecSubComb, reduction.type = "cca.aligned", 
-                             resolution = 0.6, dims.use = 1:10,
+                             resolution = 0.6, dims.use = 1:7,
                              random.seed = 0)
-
-# Plot the clusters
-tSNE_PCA(mtecSubComb, "cluster")
-
-dev.off()
 
 save(mtecSubComb, file = output_file)

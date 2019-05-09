@@ -617,7 +617,10 @@ plot_avg_exp_genes <- function(seurat_object, gene_list, save_plot = NULL, ...){
   avg_expression_melt <- reshape2::melt(avg_expression)
   base_plot <- ggplot2::ggplot(avg_expression_melt, ggplot2::aes(x = variable, y = value,
                                                     group = gene)) +
-    ggplot2::geom_line(ggplot2::aes(linetype = gene))  
+    ggplot2::geom_line(ggplot2::aes(color = gene)) +
+    ggplot2::scale_color_brewer(palette = "Dark2") +
+    ggplot2::xlab("Experiment") +
+    ggplot2::ylab("Average expression") 
     #ggplot2::theme_classic()
 
   if (!(is.null(save_plot))){
@@ -1327,6 +1330,7 @@ trio_plots(mtecCombined_all, geneset = gene_sets,
   plot_jitter = FALSE, color = timecourse_color, sep_by = "pub_exp",
   save_plot = paste0(save_dir, "/figure_4c.pdf"))
 
+
 old_data_sets <- unique(mtecCombined@meta.data$exp)
 old_data_sets <- old_data_sets[old_data_sets != "aireTrace"]
 
@@ -1334,7 +1338,6 @@ percents_counts_all <- sapply(old_data_sets, function(x) percents_and_counts(mte
   gene_lists = gene_lists, batch_name = paste0("Aire_positive_", x),
   downsample_UMI = downsample_UMI, one_batch = TRUE, batch = "stage_exp",
   lowest_UMI = lowest_UMI, count = c("genes", "percent", "umi")))
-
 
 percents <- sapply(names(percents_counts_all), function(x) 
   get_perc_count(percents_counts_all, x, data_type = "percent"), USE.NAMES = TRUE)
@@ -1356,10 +1359,12 @@ short_list <- c("tra_fantom", "aire_genes", "fezf2_genes")
 counts_df_plot <- counts_df_m[counts_df_m$gene_list %in% to_plot, ]
 counts_df_short <- counts_df_m[counts_df_m$gene_list %in% short_list, ]
 
+colnames(percents) <- new_exp_names[colnames(percents)]
 percents_m <- reshape2::melt(percents)
-names(percents_m) <- c("gene_list", "exp", "percent_of_genes")
+names(percents_m) <- c("gene_list", "pub_exp", "percent_of_genes")
 
-percents_m$pub_exp <- new_exp_names[percents_m$exp]
+# I suspect this line is the problem...
+#percents_m$pub_exp <- new_exp_names[percents_m$exp]
 percents_m$pub_exp <- factor(percents_m$pub_exp,
                              levels = unname(new_exp_names))
 percents_plot <- percents_m[percents_m$gene_list %in% to_plot, ]
@@ -1421,8 +1426,15 @@ fig_list <- c(fig_list, "figure_4")
 # # Figure 5 #
 # ############
 
+# This still needs some work
+
 print("Figure 5")
 reanalysis_colors <- c("#603E95", "#009DA1", "#FAC22B", "#D7255D")
+
+projenitor_mtec <- mtec_no_at
+
+projenitor_mtec <- Seurat::SetAllIdent(projenitor_mtec, id = "stage")
+projenitor_mtec <- Seurat::SubsetData(projenitor_mtec, ident.use = "Early_Aire")
 
 progenitor_mtec@meta.data$pub_exp <- new_exp_names[progenitor_mtec@meta.data$exp]
 progenitor_mtec@meta.data$pub_exp <- factor(progenitor_mtec@meta.data$pub_exp,
@@ -1449,7 +1461,7 @@ if (!identical(rownames(cell_cycle), rownames(no_at_mtec@meta.data))) {
 }
 no_at_mtec@meta.data$cycle_phase <- cell_cycle$cycle_phase
 percent_cycling <- sapply(data_sets, USE.NAMES = TRUE,
-  function(x) percent_cycling_cells(no_at_mtec,
+  function(x) percent_cycling_cells(projenitor_mtec,
   data_set = x, meta_data_col = "pub_exp"))
 percent_cycling <- data.frame(percent_cycling)
 percent_cycling$experiment <- rownames(percent_cycling)
@@ -1467,16 +1479,15 @@ dev.off()
 
 # Figure 5c
 # Violin plots of genes of interest
-trio_plots(no_at_mtec, geneset = c("Hmgb2", "Tubb5", "Stmn1"),
+trio_plots(projenitor_mtec, geneset = c("Hmgb2", "Tubb5", "Stmn1"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
   plot_jitter = FALSE, color = timecourse_color, sep_by = "pub_exp",
   save_plot = paste0(save_dir, "/figure_5cI.pdf"))
 
-trio_plots(no_at_mtec, geneset = c("Aire", "Ccl21a", "Fezf2"),
+trio_plots(projenitor_mtec, geneset = c("Aire", "Ccl21a", "Fezf2"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
   plot_jitter = FALSE, color = timecourse_color, sep_by = "pub_exp",
   save_plot = paste0(save_dir, "/figure_5cII.pdf"))
-
 
 
 # Figure 5d
@@ -1564,12 +1575,13 @@ tSNE_PCA(mtec, "Krt8", save_plot = paste0(save_dir, "/figure_s1bV.pdf"))
 tSNE_PCA(mtec, "Ascl1", save_plot = paste0(save_dir, "/figure_s1bVI.pdf"))
 tSNE_PCA(mtec, "Fezf2", save_plot = paste0(save_dir, "/figure_s1bVII.pdf"))
 tSNE_PCA(mtec, "Aire", save_plot = paste0(save_dir, "/figure_s1bVIII.pdf"))
-tSNE_PCA(mtec, "Tnfrsf11a", save_plot = paste0(save_dir, "/figure_s1bIX.pdf"))
+#tSNE_PCA(mtec, "Tnfrsf11a", save_plot = paste0(save_dir, "/figure_s1bIX.pdf"))
+tSNE_PCA(mtec, "GFP", save_plot = paste0(save_dir, "/figure_s1bIX.pdf"))
 tSNE_PCA(mtec, "Krt10", save_plot = paste0(save_dir, "/figure_s1bX.pdf"))
 tSNE_PCA(mtec, "Trpm5", save_plot = paste0(save_dir, "/figure_s1bXI.pdf"))
-tSNE_PCA(mtec, "Dclk1", save_plot = paste0(save_dir, "/figure_s1bXII.pdf"))
+#tSNE_PCA(mtec, "Dclk1", save_plot = paste0(save_dir, "/figure_s1bXIII.pdf"))
 tSNE_PCA(mtec, "Pou2f3", save_plot = paste0(save_dir, "/figure_s1bXII.pdf"))
-tSNE_PCA(mtec, "GFP", save_plot = paste0(save_dir, "/figure_s1bXIV.pdf"))
+#tSNE_PCA(mtec, "GFP", save_plot = paste0(save_dir, "/figure_s1bXIV.pdf"))
 
 fig_list <- c(fig_list, "supplemental_figure_1")
 ######################### 
@@ -1687,6 +1699,8 @@ tSNE_PCA(mtecCombined, "Dclk1", save_plot = paste0(save_dir, "/figure_s4aXII.pdf
 tSNE_PCA(mtecCombined, "Pou2f3", save_plot = paste0(save_dir, "/figure_s4aXII.pdf"))
 tSNE_PCA(mtecCombined, "GFP", save_plot = paste0(save_dir, "/figure_s4aXIV.pdf"))
 
+# Heatmaps here
+
 fig_list <- c(fig_list, "supplemental_figure_4")
 #########################
 # Supplemental Figure 5 #
@@ -1718,14 +1732,9 @@ lapply(names(plot_names_fig5), function(x) plot_gene_set(mtecCombined,
                                             limits = limit_list[["tra_fantom"]],
                                             save_plot = plot_names_fig5[[x]]))
 
+
+
 # S5b
-# Bootstrap downsample plots
-if (bootstrap) {
-  source(bootstrap_script)
-
-}
-
-# S5c
 # Number of protein coding genes seen in WT not downsampled
 # Double check this is correct
 wt_aire <- Seurat::SetAllIdent(mtec_aire_positive, id = "exp")
@@ -1748,10 +1757,16 @@ cumFreqPlot <- ggplot2::ggplot(cumFreq_df, ggplot2::aes(x = ID, y = list_percent
   ggplot2::geom_line() +
   ggplot2::scale_color_brewer(palette = "Dark2")
 
-ggplot2::ggsave(paste0(save_dir, "/figure_s5c.pdf"), plot = cumFreqPlot)
+ggplot2::ggsave(paste0(save_dir, "/figure_s5b.pdf"), plot = cumFreqPlot)
+
+# S5c
+# Bootstrap downsample plots
+if (bootstrap) {
+  source(bootstrap_script)
+
+}
 
 fig_list <- c(fig_list, "supplemental_figure_5")
-
 #########################
 # Supplemental Figure 6 #
 #########################

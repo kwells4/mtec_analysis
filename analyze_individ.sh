@@ -1,6 +1,4 @@
-#!/bin/sh
-
-# make sure it's to Lar's account
+ure it's to Lar's account
 #SBATCH --account larsms
 # set time
 #SBATCH --time=1-03:00:00
@@ -26,3 +24,4 @@
 . /home/kwells4/anaconda3/etc/profile.d/conda.sh
 
 snakemake -j 999 --use-conda --cluster-config cluster.json --cluster "sbatch --account {cluster.account} --partition {cluster.partition} --job-name {cluster.job-name} --time {cluster.time} --ntasks {cluster.ntasks} --cpus-per-task {cluster.cpus-per-task} --nodes {cluster.nodes} --mem {cluster.mem} --mail-user {cluster.mail} --mail-type {cluster.type}"
+
