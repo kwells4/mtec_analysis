@@ -6,7 +6,7 @@ To use:
 
 1. Download and install miniconda3: For Linux
 
-'''shell
+'''bash
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh bash Miniconda3-latest-Linux-x86_64.sh
 '''
 
@@ -14,7 +14,7 @@ wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh bash 
 
 * make a directory for each file
 
-'''shell
+'''bash
 mkdir {sample} cd {sample} mkdir {sample}_raw_data
 '''
 
@@ -24,13 +24,13 @@ mkdir {sample} cd {sample} mkdir {sample}_raw_data
 
 3. Install Snakemake:
 
-'''shell
+'''bash
 conda install snakemake -c bioconda -c conda-forge
 '''
 
 4. Download and extract the mouse reference genome
 
-'''shell
+'''bash
 wget http://cf.10xgenomics.com/supp/cell-exp/refdata-cellranger-mm10-1.2.0.tar.gz tar -xzvf refdata-cellranger-mm10-1.2.0.tar.gz
 '''
 
@@ -47,19 +47,19 @@ wget http://cf.10xgenomics.com/supp/cell-exp/refdata-cellranger-mm10-1.2.0.tar.g
 
 To make a seurat object for all samples from the 10x run
 
-'''shell
+'''bash
 snakemake --cores 30
 ''' 
 
 or submit with
 
-'''shell
+'''bash
 sbatch analyze_individ.sh
 '''
 
 To make figures, it's best to submit this to the cluster using
 
-'''shell
+'''bash
 sbatch submit_figures.sh
 '''
 
