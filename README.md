@@ -4,46 +4,65 @@ Writen by Kristen Wells April 11, 2019. Last modified April 23, 2019
 
 To use:
 
-Download and install miniconda3: For Linux
+1. Download and install miniconda3: For Linux
 
+'''shell
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh bash Miniconda3-latest-Linux-x86_64.sh
+'''
 
-Copy this entire directory to where you wish to run this pipeline. Inside this directory:
+2. Copy this entire directory to where you wish to run this pipeline. Inside this directory:
 
-make a directory for each file
+* make a directory for each file
 
+'''shell
 mkdir {sample} cd {sample} mkdir {sample}_raw_data
+'''
 
-move sample tarball and meta data tarball into the raw_data folder and untar.
+* move sample tarball and meta data tarball into the raw_data folder and untar.
 
-Place the sample sheet named in the location {sample}/sample_sheet_{sample}.csv This must be repeated for all samples in the experiment.
+* Place the sample sheet named in the location {sample}/sample_sheet_{sample}.csv This must be repeated for all samples in the experiment.
 
-Install Snakemake:
+3. Install Snakemake:
 
+'''shell
 conda install snakemake -c bioconda -c conda-forge
+'''
 
-Download and extract the mouse reference genome
+4. Download and extract the mouse reference genome
 
+'''shell
 wget http://cf.10xgenomics.com/supp/cell-exp/refdata-cellranger-mm10-1.2.0.tar.gz tar -xzvf refdata-cellranger-mm10-1.2.0.tar.gz
+'''
 
-Update the config file (config.yaml)
+5. Update the config file (config.yaml)
 
-mapping_sample: The sample used to map clusters for the combined analysis
-samples: a list of all samples in the experiment. Include path to the reference and gtf file for each sample. Also include if the sample should be included in the allSamples run and the Controls run
-project: The name of the project
-data_dir: The path to the directory containing any extra data files
-mem: The amount of memory to give the mapping rules
-fig_files: A list of all files needed for the final analysis. These all must be made at some point during the snakemake pipeline
-If you are running on a cluster, update the cluster.json for with your specific specs
+* mapping_sample: The sample used to map clusters for the combined analysis
+* samples: a list of all samples in the experiment. Include path to the reference and gtf file for each sample. Also include if the sample should be included in the allSamples run and the Controls run
+* project: The name of the project
+* data_dir: The path to the directory containing any extra data files
+* mem: The amount of memory to give the mapping rules
+* fig_files: A list of all files needed for the final analysis. These all must be made at some point during the snakemake pipeline
+
+6. If you are running on a cluster, update the cluster.json for with your specific specs
+
 To make a seurat object for all samples from the 10x run
 
+'''shell
 snakemake --cores 30
+''' 
+
 or submit with
 
+'''shell
 sbatch analyze_individ.sh
+'''
+
 To make figures, it's best to submit this to the cluster using
 
+'''shell
 sbatch submit_figures.sh
+'''
+
 After running the submit_figures.sh script, there will be new directories for your combined analysis, and analysis_out directories in each sample directory containing images from the analysis. There will also be a "figure_output" director containing all figures.
 
 This pipeline has been developed and tested with Snakemake 5.2.2 or higher. Check your version by typing: snakemake --version

@@ -42,12 +42,12 @@ stage_color_df <- data.frame("Cortico_medullary" = "#CC6600",
                              "Aire_positive" = "#660099",
                              "Late_Aire" = "#FF0000",
                              "Tuft" = "#990000",
-                             "other" = "#666666")
+                             "unknown" = "#666666")
 
 stage_color <- t(stage_color_df)[ , 1]
 
 stage_levels <- c("Cortico_medullary", "Ccl21a_high", "Early_Aire",
-                  "Aire_positive", "Late_Aire", "Tuft", "other")
+                  "Aire_positive", "Late_Aire", "Tuft", "unknown")
 
 ######################
 # Initial processing #
@@ -69,7 +69,7 @@ mtec <- change_clus_ids(mtec, new_ids = c(1, 2, 3, 6, 0, 4, 5, 7, 8))
 stage_list <- c("0" = "Cortico_medullary", "1" = "Ccl21a_high", "2" = "Ccl21a_high",
                 "3" = "Ccl21a_high", "4" = "Early_Aire",
                 "5" = "Aire_positive", "6" = "Late_Aire",
-                "7" = "Tuft")
+                "7" = "Tuft", "8" = "unknown")
 
 mtec <- set_stage(mtec, stage_list)
 
