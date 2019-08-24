@@ -28,6 +28,8 @@ working_dir <- "/home/kwells4/mTEC_dev/RankL_ablation/"
 full_gene_list <- Seurat::Read10X(data.dir = paste0(working_dir, 
                       "isoControlBeg/isoControlBeg_count/outs/filtered_gene_bc_matrices/mm10/"))
 
+load("/home/kwells4/mTEC_dev/mtec_snakemake/allSamples/analysis_outs/seurat_allSamples_combined.rda")
+
 ##################
 # Set gene lists #
 ##################
@@ -95,9 +97,11 @@ fezf2_dependent <- c("Anxa10", "Apoc2", "Car8", "Cyp24a1", "Fabp9", "Krt10",
 # TRA based on FANTOM data #
 ############################
 mtecCombinedSub <- mtecCombined
-mtecCombinedSub@assay$ablation_DE <- NULL
-mtecSub <- Seurat::SubsetData(mtecCombinedSub, ident.use = mtec_subset)
-count_table <- mtecSub@data
+# mtecCombinedSub@assay$ablation_DE <- NULL
+# mtecSub <- Seurat::SubsetData(mtecCombinedSub, ident.use = mtec_subset)
+# count_table <- mtecSub@data
+
+count_table <- mtecCombined@data
 
 # Figure out exactly what these functions are doing
 meansFANTOM <- sapply( split(seq_len(ncol(dxdFANTOM)),
@@ -136,6 +140,7 @@ meansFantom_gene$geneNames <- NULL
 numbersOfTissues <- rowSums( meansFantom_gene > 5 )
 
 count_table <- as.matrix(count_table)
+# only keep genes expressed in Aire positive population
 count_table_expr <- count_table[rowSums(count_table) > 0, ]
 
 numbersOfTissues <- numbersOfTissues[names(numbersOfTissues) %in%
@@ -240,6 +245,29 @@ all_gene_list <- c(TRA_fantom, aireDependent_gene, fezf2_gene)
 other_protein <- isProteinCodingGene[!isProteinCodingGene %in% all_gene_list]
 
 
+################################################
+# Co-expressed TRAs from Brennecke et al. 2015 #
+################################################
+
+TRA_coexpression <- read.table("/home/kwells4/mTEC_dev/data/TRA_coexpression.tsv",
+  header = TRUE, sep = "\t", row.names = 1)
+TRA_coexpression$clusterColor <- NULL
+
+clusterA <- TRA_coexpression[TRA_coexpression$clusterNumber == "A", ]
+clusterA_genes <- clusterA$geneNames
+
+clusterB <- TRA_coexpression[TRA_coexpression$clusterNumber == "B", ]
+clusterB_genes <- clusterB$geneNames
+
+clusterC <- TRA_coexpression[TRA_coexpression$clusterNumber == "C", ]
+clusterC_genes <- clusterC$geneNames
+
+clusterD <- TRA_coexpression[TRA_coexpression$clusterNumber == "D", ]
+clusterD_genes <- clusterD$geneNames
+
+clusterE <- TRA_coexpression[TRA_coexpression$clusterNumber == "E", ]
+clusterE_genes <- clusterE$geneNames
+
 ###### 
 
 # Add all gene lists you want to analyze here
@@ -247,7 +275,10 @@ gene_lists <- list(protein_coding = isProteinCodingGene, non_tra = non_fantom_tr
                    all_other_genes = other_protein,
                    tra_brennecke = isTRA_gene, tra_fantom = TRA_fantom,
                    aire_genes = aireDependent_gene, aire_tra = aire_tra_fantom,
-                   fezf2_genes = fezf2_gene, fezf2_tra = fezf2_tra_fantom)
+                   fezf2_genes = fezf2_gene, fezf2_tra = fezf2_tra_fantom,
+                   co_expr_A = clusterA_genes, co_expr_B = clusterB_genes,
+                   co_expr_C = clusterC_genes, co_expr_D = clusterD_genes,
+                   co_expr_E = clusterE_genes)
 
 
 ################################################################################

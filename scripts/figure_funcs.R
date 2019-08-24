@@ -337,9 +337,14 @@ plot_gene_set <- function(seurat_obj, gene_set, plot_name,
                           one_dataset = TRUE, data_set = NULL,
                           make_plot = TRUE, ...){
   print(head(gene_set))
+  # Only keep genes that are in the expression matrix
   gene_set <- gene_set[gene_set %in%
                        rownames(seurat_obj@data)]
+
+  # Take the mean expression of all of those genes per cell
   mean_exp <- colMeans(as.matrix(seurat_obj@data[gene_set, ]), na.rm = TRUE)
+
+  # Add to meta data
   if (all(names(x = mean_exp) == rownames(x = seurat_obj@meta.data))) {
     print("Cell names order match in 'mean_exp' and 'object@meta.data': 
         adding gene set mean expression vaules in 'object@meta.data$gene.set.score'")
@@ -476,16 +481,16 @@ full_umap <- function(mtec, data_set, col_by, plot_type = "umap",
 
 full_discrete_plots <- function(data_set, plot_df, col_by, axis_names = c("dim1", "dim2"),
                                 color = NULL, save_plot = NULL, show_legend = TRUE) {
-  if (!(is.null(save_plot))){
-    extension <- substr(save_plot, nchar(save_plot)-2, nchar(save_plot))
-    if (extension == "pdf"){
-      pdf(save_plot)
-    } else if (extension == "png") {
-      png(save_plot)
-    } else {
-      print("save plot must be .png or .pdf")
-    }
-  }
+  # if (!(is.null(save_plot))){
+  #   extension <- substr(save_plot, nchar(save_plot)-2, nchar(save_plot))
+  #   if (extension == "pdf"){
+  #     pdf(save_plot)
+  #   } else if (extension == "png") {
+  #     png(save_plot)
+  #   } else {
+  #     print("save plot must be .png or .pdf")
+  #   }
+  # }
   plot1 <- plot_df[plot_df$all == "all_samples", ]
   plot2 <- plot_df[plot_df$all != "all_samples", ]
   
@@ -518,8 +523,9 @@ full_discrete_plots <- function(data_set, plot_df, col_by, axis_names = c("dim1"
    }
 
   if (!(is.null(save_plot))){
-    print(base_plot)
-    dev.off()
+    ggplot2::ggsave(save_plot)
+    # print(base_plot)
+    # dev.off()
   }
   return(base_plot)
 }
@@ -527,16 +533,16 @@ full_discrete_plots <- function(data_set, plot_df, col_by, axis_names = c("dim1"
 full_continuous_plots <- function(data_set, plot_df, col_by, color = NULL,
                                   limits = NULL, axis_names = c("dim1", "dim2"),
                                   save_plot = NULL, show_legend = TRUE) {
-  if (!(is.null(save_plot))){
-    extension <- substr(save_plot, nchar(save_plot)-2, nchar(save_plot))
-    if (extension == "pdf"){
-      pdf(save_plot)
-    } else if (extension == "png") {
-      png(save_plot)
-    } else {
-      print("save plot must be .png or .pdf")
-    }
-  }
+  # if (!(is.null(save_plot))){
+  #   extension <- substr(save_plot, nchar(save_plot)-2, nchar(save_plot))
+  #   if (extension == "pdf"){
+  #     pdf(save_plot)
+  #   } else if (extension == "png") {
+  #     png(save_plot)
+  #   } else {
+  #     print("save plot must be .png or .pdf")
+  #   }
+  # }
   plot_name_comb <- paste(data_set, collapse = "_")
   if (is.null(color)) {
     low <- "#00AFBB"
@@ -572,8 +578,9 @@ full_continuous_plots <- function(data_set, plot_df, col_by, color = NULL,
   }
 
   if (!(is.null(save_plot))){
-    print(base_plot)
-    dev.off()
+    ggplot2::ggsave(save_plot)
+    # print(base_plot)
+    # dev.off()
   }
   return(base_plot)
   

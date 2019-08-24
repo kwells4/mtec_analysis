@@ -1,6 +1,6 @@
 This snakemake pipeline contains all the necessary scripts to recreate the analysis for (eventual paper).
 
-Writen by Kristen Wells April 11, 2019. Last modified April 23, 2019
+Writen by Kristen Wells April 11, 2019. Last modified July 16, 2019
 
 To use:
 

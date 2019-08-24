@@ -1,6 +1,7 @@
 library(mTEC.10x.pipeline)
 library(dplyr)
 library(slingshot)
+library(svglite)
 source("/home/kwells4/mTEC_dev/mtec_snakemake/scripts/figure_funcs.R")
 
 
@@ -102,10 +103,10 @@ load(paste0(data_directory, "gene_lists.rda"))
 
 
 # Figure 2a
-# Dot plot of all markers Change this to be most interesting markers
+# Dot plot of most interesting markers and stem cell markers
 markers_to_plot_full <- c("Krt5", "Ccl21a", "Ascl1", "Hes1", "Hmgb2", "Hmgn2",
   "Hmgb1", "H2afx", "Stmn1", "Tubb5", "Mki67", "Ptma", "Aire", "Utf1", "Fezf2", 
-  "Krt10", "Nupr1", "Cebpb", "Trpm5", "Pou2f3", "Dclk1")
+  "Krt10", "Nupr1", "Cebpb", "Trpm5", "Pou2f3", "Dclk1", "Pou5f1", "Sox2", "Nanog")
 
 pdf(paste0(save_dir, "/figure_2aI.pdf"))
 dot_plot <- Seurat::DotPlot(mtec_no_un, genes.plot = rev(markers_to_plot_full),
@@ -392,7 +393,9 @@ counts_df$pub_exp <- factor(counts_df$pub_exp,
 counts_df_m <- reshape2::melt(counts_df, variable.name = "gene_list",
   value.name = "gene_count")
 
-to_plot <- c("tra_fantom", "all_other_genes", "aire_genes", "fezf2_genes")
+# I Changed this on 082219 to add co-expression data
+to_plot <- c("tra_fantom", "all_other_genes", "aire_genes", "fezf2_genes",
+  "co_expr_A", "co_expr_C", "co_expr_D", "co_expr_E")
 short_list <- c("tra_fantom", "aire_genes", "fezf2_genes")
 
 counts_df_plot <- counts_df_m[counts_df_m$gene_list %in% to_plot, ]
@@ -461,6 +464,34 @@ all_plots
 dev.off()
 
 fig_list <- c(fig_list, "figure_4")
+
+######################
+# Figure 4 extension #
+######################
+
+aire_plot_names <- c(isoControlBeg = paste0(save_dir, "/figure_e4Ia.svg"),
+                     isoControlEnd = paste0(save_dir, "/figure_e4Ib.svg"),
+                     timepoint1 = paste0(save_dir, "/figure_e4Ic.svg"),
+                     timepoint2 = paste0(save_dir, "/figure_e4Id.svg"),
+                     timepoint3 = paste0(save_dir, "/figure_e4Ie.svg"),
+                     timepoint5 = paste0(save_dir, "/figure_e4If.svg"))
+
+lapply(names(aire_plot_names), function(x) full_umap(mtecCombined,
+  data_set = x, col_by = "Aire", show_legend = TRUE,
+  save_plot = aire_plot_names[[x]]))
+
+fezf2_plot_names <- c(isoControlBeg = paste0(save_dir, "/figure_e4IIa.svg"),
+                      isoControlEnd = paste0(save_dir, "/figure_e4IIb.svg"),
+                      timepoint1 = paste0(save_dir, "/figure_e4IIc.svg"),
+                      timepoint2 = paste0(save_dir, "/figure_e4IId.svg"),
+                      timepoint3 = paste0(save_dir, "/figure_e4IIe.svg"),
+                      timepoint5 = paste0(save_dir, "/figure_e4IIf.svg"))
+
+lapply(names(fezf2_plot_names), function(x) full_umap(mtecCombined,
+  data_set = x, col_by = "Fezf2", show_legend = TRUE,
+  save_plot = fezf2_plot_names[[x]]))
+
+
 # ############
 # # Figure 5 #
 # ############
@@ -1001,6 +1032,90 @@ dropout_downsample_plot <- ggplot2::ggplot(dropout_downsample_m,
   ggplot2::ylab("dropout percent")
 
 ggplot2::ggsave(paste0(save_dir, "/figure_s6dII.pdf"), plot = dropout_downsample_plot)
+
+# Heatmaps here
+mtec_wt_genes <- mtec_wt
+mtec_wt_genes@assay$DE <- NULL
+mtec_wt_genes <- Seurat::SetAllIdent(mtec_wt_genes, id = "stage")
+mtec_wt_genes <- Seurat::SubsetData(mtec_wt_genes, ident.remove = "unknown")
+mtec.markers <- Seurat::FindAllMarkers(object = mtec_wt_genes, only.pos = TRUE, min.pct = 0.25, thresh.use = 0.25)
+top30 <- mtec.markers %>% group_by(cluster) %>% top_n(30, avg_logFC)
+top30 <- as.data.frame(top30)
+
+aire_positive_genes <- top30[top30$cluster == "Aire_positive", ]$gene
+
+aire_positive_genes <- c(aire_positive_genes, "Fezf2")
+
+aire_positive_matrix <- as.matrix(no_at_mtec_aire@data)
+heatmap_aire_mtec <- Seurat::SetAllIdent(no_at_mtec_aire, id = "exp")
+
+plot_heatmap_new <- function(mtec, cell_color = NULL, subset_list = NULL,
+  color_list = NULL, color_list2 = NULL, order_cells = TRUE,
+  seed = 0){
+  mtec_data <- mtec@data
+  
+  
+  # Subset the list if desired (ie by a list of specific genes)
+  if (!is.null(subset_list)){
+    mtec_data <- mtec_data[rownames(mtec_data) %in% subset_list, ]
+  }
+  mtec_data <- as.matrix(mtec_data)
+  
+  # Center values to plot on heatmap
+  mtec_data_heatmap <- t(scale(t(mtec_data), scale = FALSE))
+  cluster <- as.data.frame(mtec@ident)
+  names(cluster) <- "cluster_val"
+  
+  # Order cells by cluster
+  if (order_cells){
+    cluster <- cluster[order(cluster$cluster_val), , drop=FALSE]
+    mtec_data_heatmap <- mtec_data_heatmap[, match(rownames(cluster),
+                                                   colnames(mtec_data_heatmap))]
+  }
+
+  colors <- as.numeric(cluster$cluster_val)
+  if (!is.null(cell_color)) {
+    col1 <- cell_color
+  } else {
+    col1 <- RColorBrewer::brewer.pal(length(levels(cluster$cluster_val)), "Set1")
+  }
+  
+  cols <- rep("black", nrow(mtec_data_heatmap))
+  
+  # Color some text red if desired
+  if (!is.null(color_list)){
+    cols[row.names(mtec_data_heatmap) %in% color_list] <- "red"
+  }
+  if (!is.null(color_list2)){
+    cols[row.names(mtec_data_heatmap) %in% color_list2] <- "blue"
+  }
+  
+  sep_list <- lapply(1:length(unique(colors)), function(x) grep(x, colors)[1])
+  sep_list <- unlist(sep_list)
+
+  # Seed for reporducibility
+  set.seed(seed)
+  gplots::heatmap.2(mtec_data_heatmap,
+                    density.info  = "none",
+                    labCol        = FALSE,
+                    Colv          = !order_cells,
+                    colRow        = cols,
+                    ColSideColors = col1[colors],
+                    colsep        = sep_list,
+                    sepcolor      = "white",
+                    trace         = "none",
+                    col           = grDevices::colorRampPalette(c("blue", "yellow")),
+                    dendrogram    = "row")
+
+
+}
+
+pdf(paste0(save_dir, "/figure_s6e.pdf"))
+
+print(plot_heatmap_new(heatmap_aire_mtec, cell_color = timecourse_color,
+  subset_list = aire_positive_genes))
+
+dev.off()
 
 fig_list <- c(fig_list, "supplemental_figure_6")
 

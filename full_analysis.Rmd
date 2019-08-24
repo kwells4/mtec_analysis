@@ -1,0 +1,217 @@
+---
+title: "mTEC development analysis"
+author: "Kristen Wells"
+date: "May 29, 2019"
+output: html_document
+---
+
+## Contents
+[Loading in the Data](#data)  
+[Aire Trace Processing](#aireTrace)  
+[Control Cell Processing](#controlCells)  
+[Make Figures](#figures)  
+
+
+This is a document that can be used to reproduce all analysis from the (eventual paper). While all steps are included, some steps take a long time and it is faster to just load in the provided R object.
+
+For best reproducability, run this analysis using the Snakemake pipeline provided as package differences can make minor changes to clustering and dimensionality reduction.
+
+If you would like to skip the data processing and just make figures from pre-made objects, go [here](#figures)
+
+All analysis depends on loading the mTEC.10x.pipeline r package
+
+```{r}
+library(mTEC.10x.pipeline)
+```
+
+## Loading in the data
+
+<a name = "data">
+
+</a>
+
+*In the Snakemake pipeline, this correponds to rule seurat_object and runs the script create_seurat.R*
+
+All data is provided in the form of empty R Seurat objects that were made by running the command
+
+```{r, eval = FALSE}
+mtec_data <- Seurat::Read10X(data.dir = sequence_dir)
+mtec <- CreateSeuratObject(raw.data = mtec_data, min.cells = 3, min.genes = 200,
+  project = project_name)
+```
+
+where "sequence_dir" is the path to the output of cellranger count and project_name = "RankL_ablation"
+
+
+
+## Aire trace processing
+<a name = "aireTrace">
+
+</a>
+
+*In the Snakemake pipeline, this correponds to rule final_analysis and runs the script analysis_driver.R found in the aireTrace/scripts directory*
+
+This is the processing that was done to create the aireTrace Seurat object. If you would rather skip this processing, skip to [figures](#figures) section.
+
+load in necessary packages
+
+```{r}
+library(Seurat)
+library(dplyr)
+library(scran)
+library(DDRTree)
+```
+
+load in empty aireTrace object and gene lists
+
+```{r}
+# Change this to load from the mtec.10x.data package
+load("/home/kwells4/mTEC_dev/mtec_snakemake/aireTrace/analysis_outs/seurat_aireTrace_empty.rda")
+data_dir <- "/home/kwells4/mTEC_dev/data/"
+load(paste0(data_dir, "TFs.rda"))
+load(paste0(data_dir, "gene_to_ensembl.rda"))
+```
+
+Set plotting colors
+
+```{r}
+stage_color_df <- data.frame("Cortico_medullary" = "#CC6600",
+                             "Ccl21a_high" = "#009933",
+                             "Early_Aire" = "#0066CC",
+                             "Aire_positive" = "#660099",
+                             "Late_Aire" = "#FF0000",
+                             "Tuft" = "#990000",
+                             "unknown" = "#666666")
+
+stage_color <- t(stage_color_df)[ , 1]
+
+stage_levels <- c("Cortico_medullary", "Ccl21a_high", "Early_Aire",
+                  "Aire_positive", "Late_Aire", "Tuft", "unknown")
+
+```
+
+Initial processing. This is run through the mTEC.10x.pipeline package, but combines the initial processing steps recommended by Seurat
+
+```{r}
+# Add mitochondiral percent to the meta data
+mtec <- add_perc_mito(mtec)
+
+# Plot quality plots
+qc_plot(mtec)
+
+# remove low quality cells, normalize and scale data, find variable genes, and perform PCA 
+mtec <- process_cells(mtec)
+
+# Plot a PCA and determine dimensions to use by looking at heatmaps and elbow plots
+PC_plots(mtec, jackstraw = FALSE, test_pcs = 1:20)
+```
+If running on a cluster and if you have the time, you can make a jackstraw plot to test the number of PCs to keep. Run using:
+
+```{r, eval = FALSE}
+PC_plots(mtec, jackstraw = TRUE, test_pcs = 1:20)
+```
+
+After determining the number of PCs to use from the PC_plots outputs, clustering and dimensional reduction can be performed using the appropriate number of PCs. Here, we used the first 12 PCs.
+
+```{r}
+# Decide PCs based on output of jackstraw plot
+mtec <- group_cells(mtec, dims_use = 1:12)
+```
+
+Now that we have clusters, we can find marker genes of each cluster to be able to identify what cell types are contained in each cluster. 
+
+```{r}
+mtec.markers <- FindAllMarkers(object = mtec, only.pos = TRUE, min.pct = 0.25,
+  thresh.use = 0.25)
+
+# Only print the top 10 markers of each cluster
+
+top10 <- mtec.markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
+
+print(top10)
+
+DoHeatmap(object = mtec, genes.use = top10$gene, slim.col.label = TRUE, remove.key = TRUE)
+
+```
+
+
+
+
+
+Use the gene list to name clusters. We chose to merge clusters 0, 1, and 2 because of their highly similar gene expression patterns, especially levels of Ccl21a expression.
+
+```{r}
+stage_list <- c("0" = "Ccl21a_high", "1" = "Ccl21a_high", "2" = "Ccl21a_high",
+                "3" = "Late_Aire", "4" = "Cortico_medullary",
+                "5" = "Early_Aire", "6" = "Aire_positive",
+                "7" = "Tuft", "8" = "unknown")
+
+mtec <- set_stage(mtec, stage_list)
+
+mtec@meta.data$stage <- factor(mtec@meta.data$stage,
+                               levels = stage_levels)
+
+```
+
+Now we can find markers of each stage of development and determine cell cycle phase
+
+```{r, eval = FALSE}
+# These steps take a long time. Only run if you have processing power.
+mtec <- Seurat::StashIdent(mtec, save.name = "seurat_cluster")
+
+mtec <- Seurat::SetAllIdent(mtec, id = "stage")
+
+mtec@ident <- factor(mtec@ident, levels = stage_levels)
+
+mtec <- significant_markers(mtec)
+
+mtec <- run_cyclone(mtec, gene_to_ensembl)
+
+```
+
+Check the data visually
+
+```{r}
+load("/home/kwells4/mTEC_dev/mtec_snakemake/aireTrace/analysis_outs/seurat_aireTrace.rda")
+
+tSNE_PCA(mtec, "seurat_cluster", PCA = TRUE)
+tSNE_PCA(mtec, "cluster", PCA = TRUE, color = stage_color)
+tSNE_PCA(mtec, "Aire")
+tSNE_PCA(mtec, "Ccl21a")
+tSNE_PCA(mtec, "Mki67")
+tSNE_PCA(mtec, "Ascl1")
+tSNE_PCA(mtec, "Hmgb2")
+tSNE_PCA(mtec, "Dclk1")
+tSNE_PCA(mtec, "Fezf2")
+tSNE_PCA(mtec, "cycle_phase", color = c("black", "red", "purple"))
+```
+
+
+## Control cell processing
+<a name = "controlCells">
+
+</a>
+
+### Combine control samples 
+*In the Snakemake pipeline, this correponds to rule combine_controls and runs the script create_combined_seurat.R found in the controls/scripts directory*
+
+
+
+### Analyze control samples
+*In the Snakemake pipeline, this correponds to rule combine_controls and runs the script analysis_driver.R found in the controls/scripts directory*
+
+
+## Making the paper figures
+<a name = "figures">
+
+</a>
+*In the Snakemake pipeline, this correponds to rule combine_controls and runs the script figures.R found in the scripts directory*
+
+If you haven't followed the steps outlined above to pre-process the data and would just like to make figures using the final seurat objects, run this command
+
+```{r}
+# Change this to load from mTEC.10x.data
+load("/home/kwells4/mTEC_dev/mtec_snakemake/aireTrace/analysis_outs/seurat_aireTrace.rda")
+```
+
+This loads in complete Seurat objects that were created using the Snakemake pipeline.

@@ -6,11 +6,14 @@
 */*_raw_data/
 */.snakemake
 */analysis_outs/
+figure_output_old/
 */core*
 *.pdf
 *.DS_Store
 */cache/
 ._Snakefile
 .snakemake/
+._*
+*.svg
 not_yet_included/seurat_info.csv
 scripts/not_yet_included/cache/

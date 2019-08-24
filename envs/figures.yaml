@@ -10,6 +10,7 @@ dependencies:
     - r-ddrtree=0.1.5
     - r-reshape=0.8.7
     - r-ggpubr=0.2
+    - r-svglite=1.2.2
     - bioconductor-biobase=2.42.0
     - bioconductor-scran=1.10.1
     - bioconductor-monocle=2.10.0
