@@ -336,7 +336,7 @@ highlight_one_group(mtecCombined, meta_data_col = "stage", group = "Aire_positiv
 
 # Figure 4b
 # Average expression of set of genes over ablation
-average_gene_list <- c("Aire", "Fezf2", "Gapdh", "Emc7")
+average_gene_list <- c("Aire", "Fezf2", "Gapdh", "Emc7", "Tnfrsf11a")
 
 mtec_aire_positive <- Seurat::SubsetData(mtecCombSub, ident.use = "Aire_positive",
   subset.raw = TRUE)
