@@ -12,15 +12,16 @@ source("/home/kwells4/mTEC_dev/mtec_snakemake/scripts/figure_funcs.R")
 ##################################################################################
 
 # Get files from Snakemake
-aireTrace <- snakemake@input[[1]]
-controls <- snakemake@input[[2]]
-allSamples <- snakemake@input[[3]]
-controls_slingshot <- snakemake@input[[4]]
-allSamples_slingshot <- snakemake@input[[5]]
-early_aire_mtec <- snakemake@input[[6]]
-save_file <- snakemake@output[[1]]
-data_directory <- snakemake@params[[1]]
-save_dir <- snakemake@params[[2]]
+aireTrace <- "aireTrace/analysis_outs/seurat_aireTrace.rda"
+controls <- "controls/analysis_outs/seurat_controls_merged.rda"
+allSamples <- "allSamples/analysis_outs/seurat_allSamples_combined.rda"
+controls_slingshot <- "controls/analysis_outs/controls_merged_slingshot.rda"
+allSamples_slingshot <- "allSamples/analysis_outs/allSamples_combined_slingshot.rda"
+early_aire_mtec <- "allSamples/analysis_outs/seurat_allSamples_Early_Aire_combined.rda"
+save_file <- "figure_output/complete_figs.txt"
+data_directory <- "/home/kwells4/mTEC_dev/data/"
+save_dir <- "figure_output"
+
 
 # Colors for plotting
 stage_color_df <- data.frame("cTEC" = "#CC6600", "Ccl21a_high" = "#009933",
@@ -33,7 +34,7 @@ stage_color <- t(stage_color_df)[ , 1]
 # Load in data
 mtec <- get(load(aireTrace))
 
-mtec_wt <- get(load(controls))
+mtec_wt <- readRDS(controls)
 
 mtecCombined <- get(load(allSamples))
 
@@ -51,6 +52,12 @@ TFs_all <- c("H2afz", "Top2a", "Hmgb1", "Hmgn1", "H2afx", as.character(TFs))
 
 bootstrap <- FALSE
 
+stage_levels <- c("cTEC", "Ccl21a_high", "TAC_TEC",
+                  "Aire_positive", "Late_Aire", "Tuft", "other")
+
+stage_levels_wt <- c("cTEC", "Ccl21a_high", "TAC_TEC",
+                  "Aire_positive", "Late_Aire", "Tuft", "unknown")
+
 # Set theme
 ggplot2::theme_set(ggplot2::theme_classic(base_size = 18))
 
@@ -61,6 +68,8 @@ mtec_wt@meta.data$stage[mtec_wt@meta.data$stage ==
   "Cortico_medullary"] <- "cTEC"
 mtec_wt@meta.data$stage[mtec_wt@meta.data$stage ==
   "Early_Aire"] <- "TAC_TEC"
+
+mtec_wt@meta.data$stage <- factor(mtec_wt@meta.data$stage, levels = stage_levels_wt)
 
 ############
 # Figure 1 #
@@ -77,6 +86,8 @@ mtec_wt_plot@assay$DE <- NULL
 mtec_wt_plot <- Seurat::SetAllIdent(mtec_wt_plot, id = "stage")
 mtec_wt_plot <- Seurat::SubsetData(mtec_wt_plot, ident.remove = "unknown")
 
+mtec_wt_plot@ident <- factor(mtec_wt_plot@ident, levels = stage_levels)
+
 # Make a umap
 tSNE_PCA(mtec_wt_plot, "stage", color = stage_color, show_legend = FALSE,
   save_plot = paste0(save_dir, "/figure_1bI.pdf"))
@@ -89,18 +100,20 @@ trio_plots_median(mtec_wt_plot, geneset = c("Ackr4", "Ccl21a", "Trpm5"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
   plot_jitter = FALSE, color = stage_color, sep_by = "cluster",
   save_plot = paste0(save_dir, "/figure_1cI.pdf"))
-trio_plots_median(mtec_wt_plot, geneset = c("Trpm5", "Aire", "Dclk1"),
+trio_plots_median(mtec_wt_plot, geneset = c("Aire", "Trpm5", "Dclk1"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
   plot_jitter = FALSE, color = stage_color, sep_by = "cluster",
   save_plot = paste0(save_dir, "/figure_1cII.pdf"))
-trio_plots_median(mtec_wt_plot, geneset = c("Psmb11", "Krt5", "Dclk1"),
+trio_plots_median(mtec_wt_plot, geneset = c("Prss16", "Krt5", "Dclk1"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
   plot_jitter = FALSE, color = stage_color, sep_by = "cluster",
   save_plot = paste0(save_dir, "/figure_1cIII.pdf"))
-trio_plots_median(mtec_wt_plot, geneset = c("Dclk1", "Fezf2", "Ccl21a"),
+trio_plots_median(mtec_wt_plot, geneset = c("Fezf2", "Dclk1", "Ccl21a"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
   plot_jitter = FALSE, color = stage_color, sep_by = "cluster",
   save_plot = paste0(save_dir, "/figure_1cIV.pdf"))
+
+# Figure 1d RNA velocity
 
 fig_list <- c(fig_list, "figure_1")
 ############
@@ -109,16 +122,15 @@ fig_list <- c(fig_list, "figure_1")
 print("Figure 2")
 load(paste0(data_directory, "gene_lists.rda"))
 
-# Figure 2a RNA velocity
+
 
 # Figure 2b Dot plot of genes in TAC-TECs
-
 comparison_list <- names(mtec_wt@assay$DE)
 clusters <- lapply(comparison_list, get_slots)
 clusters <- unique(unlist(clusters))
 all_clusters <- sapply(clusters, cluster_gene_list,
                        cluster_list = comparison_list,
-                       seurat_object = mtec_wt_plot,
+                       seurat_object = mtec_wt,
                        USE.NAMES = TRUE)
 
 all_clusters_but_ea <- all_clusters
@@ -132,12 +144,38 @@ genes_ea_overlap <- intersect(ea_genes, genes_no_ea)
 genes_ea_unique <- setdiff(ea_genes, genes_ea_overlap)
 
 print(genes_ea_unique)
-pdf(paste0(save_dir, "/figure_2aI.pdf"))
-dot_plot <- Seurat::DotPlot(mtec_no_un, genes.plot = rev(markers_to_plot_full),
+
+TA_5 <- read.table("/home/kwells4/mTEC_dev/data/neural_transit_amplifying_cluster5.txt")
+TA_8 <- read.table("/home/kwells4/mTEC_dev/data/neural_transit_amplifying_cluster8.txt")
+
+names(TA_5) <- "gene"
+names(TA_8) <- "gene"
+TA_5_gene <- gsub("__.*", "", TA_5$gene)
+TA_8_gene <- gsub("__.*", "", TA_8$gene)
+
+TA_genes_all <- unique(c(TA_5_gene, TA_8_gene))
+
+text_color <- ifelse(genes_ea_unique %in% TA_genes_all, "red", "black")
+
+pdf(paste0(save_dir, "/figure_2bI.pdf"))
+dot_plot <- Seurat::DotPlot(mtec_wt_plot, genes.plot = genes_ea_unique,
                             cols.use = c("blue", "red"), x.lab.rot = T,
                             plot.legend = F, dot.scale = 8, do.return = T)
+dev.off()
 
 
+pdf(paste0(save_dir, "/figure_2bII.pdf"), width = 12, height = 8)
+
+dot_plot <- dot_plot + theme(axis.text.x = element_text(colour = text_color))
+
+dot_plot
+
+dev.off()
+
+pdf(paste0(save_dir, "/figure_2bIII.pdf"))
+dot_plot <- Seurat::DotPlot(mtec_wt_plot, genes.plot = genes_ea_unique,
+                            cols.use = c("blue", "red"), x.lab.rot = T,
+                            plot.legend = T, dot.scale = 8, do.return = T)
 dev.off()
 
 # Figure 2c Jitter plots of Cycling
@@ -201,8 +239,8 @@ for (gene_set in names(gene_lists)) {
 
 
 
-mtec_wt_plot@meta.data$stage <- factor(mtec_wt_plot@meta.data$stage,
-  levels = stage_levels)
+# mtec_wt_plot@meta.data$stage <- factor(mtec_wt_plot@meta.data$stage,
+#   levels = stage_levels)
 
 # Plot each of the genes and gene sets in pseudotime, end at 16 because the
 # is where the "unknown" cells are
@@ -233,8 +271,7 @@ mtec_no_un@assay$DE <- NULL
 mtec_no_un@meta.data$stage[is.na(mtec_no_un@meta.data$stage)] <- "other"
 
 
-stage_levels <- c("cTEC", "Ccl21a_high", "TAC_TEC",
-                  "Aire_positive", "Late_Aire", "Tuft", "other")
+
 mtec_no_un@meta.data$stage <- factor(mtec_no_un@meta.data$stage,
   levels = stage_levels)
 mtec_no_un <- Seurat::SetAllIdent(mtec_no_un, id = "res.0.6")
@@ -252,19 +289,19 @@ tSNE_PCA(mtec_no_un, "stage", color = stage_color,
   save_plot = paste0(save_dir, "/figure_3bI.pdf"))
 
 # Figure 3c Violin plots of marker genes
-trio_plots_median(mtec_wt_plot, geneset = c("Ackr4", "Ccl21a", "Trpm5"),
+trio_plots_median(mtec_no_un, geneset = c("Aire", "Ackr4", "Trpm5"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
   plot_jitter = FALSE, color = stage_color, sep_by = "cluster",
   save_plot = paste0(save_dir, "/figure_3cI.pdf"))
-trio_plots_median(mtec_wt_plot, geneset = c("Trpm5", "Aire", "Dclk1"),
+trio_plots_median(mtec_no_un, geneset = c("Ccl21a", "Trpm5", "Dclk1"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
   plot_jitter = FALSE, color = stage_color, sep_by = "cluster",
   save_plot = paste0(save_dir, "/figure_3cII.pdf"))
-trio_plots_median(mtec_wt_plot, geneset = c("Psbm11", "Krt5", "Dclk1"),
+trio_plots_median(mtec_no_un, geneset = c("GFP", "Prss16","Dclk1"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
   plot_jitter = FALSE, color = stage_color, sep_by = "cluster",
   save_plot = paste0(save_dir, "/figure_3cIII.pdf"))
-trio_plots_median(mtec_wt_plot, geneset = c("Dclk1", "GFP", "Ccl21a"),
+trio_plots_median(mtec_no_un, geneset = c("Krt5", "Dclk1", "Ccl21a"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
   plot_jitter = FALSE, color = stage_color, sep_by = "cluster",
   save_plot = paste0(save_dir, "/figure_3cIV.pdf"))
@@ -401,7 +438,6 @@ plot_sling_pseudotime(
   save_plot = paste0(save_dir, "/figure_3e.pdf"))
 
 fig_list <- c(fig_list, "figure_4")
-# ###############################################################################
 
 # ############
 # # Figure 5 #
@@ -636,7 +672,17 @@ fezf2_plot_names <- c(isoControlBeg = paste0(save_dir, "/figure_7aI.pdf"),
 
 lapply(names(fezf2_plot_names), function(x) full_umap(mtecCombined,
   data_set = x, col_by = "Fezf2", show_legend = TRUE,
-  save_plot = aire_plot_names[[x]]))
+  save_plot = fezf2_plot_names[[x]]))
+
+heatmap_aire_mtec <- Seurat::SetAllIdent(no_at_mtec_aire, id = "exp")
+mtec.markers <- Seurat::FindAllMarkers(object = mtec_wt_plot, only.pos = TRUE,
+  min.pct = 0.25, thresh.use = 0.25)
+top30 <- mtec.markers %>% group_by(cluster) %>% top_n(30, avg_logFC)
+top30 <- as.data.frame(top30)
+
+aire_positive_genes <- top30[top30$cluster == "Aire_positive", ]$gene
+
+aire_positive_genes <- c(aire_positive_genes, "Fezf2")
 
 
 pdf(paste0(save_dir, "/figure_7b.pdf"))
@@ -649,46 +695,6 @@ dev.off()
 fig_list <- c(fig_list, "figure_7")
 
 ############################################################################
-# Figure 4e
-# Number of genes per cell
-full_plot <- ggplot2::ggplot(counts_df_plot, ggplot2::aes(x = gene_list,
-                                                          y = gene_count,
-                                                          fill = pub_exp)) +
-  ggplot2::geom_boxplot() +
-  ggplot2::scale_fill_manual(values = timecourse_color) +
-  #ggplot2::theme_classic() +
-  ggpubr::stat_compare_means(method = "anova", size = 2, label.y = 6150)
-
-zoom_plot <- ggplot2::ggplot(counts_df_short, ggplot2::aes(x = gene_list,
-                                                           y = gene_count,
-                                                           fill = pub_exp)) +
-  ggplot2::geom_boxplot(show.legend = FALSE) +
-  ggplot2::scale_fill_manual(values = timecourse_color) +
-  #ggplot2::theme_classic() +
-  ggplot2::theme(panel.background = ggplot2::element_blank(),
-                 axis.title.x = ggplot2::element_blank(),
-                 axis.title.y = ggplot2::element_blank(),
-                 panel.border = ggplot2::element_rect(color = "black",
-                                                      fill = NA,
-                                                      size = 1)) +
-  ggpubr::stat_compare_means(method = "anova", size = 2, label.y = 300)
-
-zoom_plot_g <- ggplot2::ggplotGrob(zoom_plot)
-
-all_plots <- full_plot + ggplot2::annotation_custom(grob = zoom_plot_g,
-                                                    xmin = 1.5,
-                                                    xmax = Inf,
-                                                    ymin = 1000,
-                                                    ymax = Inf) +
-  ggplot2::annotation_custom(grob = grid::rectGrob(gp = grid::gpar(fill = NA)),
-                             xmin = 1.5,
-                             xmax = Inf,
-                             ymin = -Inf,
-                             ymax = 500)
-pdf(paste0(save_dir, "/figure_4e.pdf"))
-all_plots
-
-dev.off()
 
 ########################
 # Supplemental Figures #
@@ -702,26 +708,26 @@ print("supplemental_figure_1")
 # Supplemental Figure 1a sorting strategy
 
 # Supplemental Figure 1b umap colored by original cluster
-tSNE_PCA(mtec_wt_plot, "res.0.6",show_legend = FALSE,
+tSNE_PCA(mtec_wt, "res.0.6",show_legend = FALSE,
   save_plot = paste0(save_dir, "/figure_s1bI.pdf"))
 
-tSNE_PCA(mtec_wt_plot, "res.0.6", show_legend = TRUE,
+tSNE_PCA(mtec_wt, "res.0.6", show_legend = TRUE,
   save_plot = paste0(save_dir, "/figure_s1bII.pdf"))
 
 # Supplemental Figure 1c umaps by gene
-tSNE_PCA(mtec_wt_plot, "Ackr4", save_plot = paste0(save_dir, "/figure_s1cI.pdf"))
-tSNE_PCA(mtec_wt_plot, "Psmb11", save_plot = paste0(save_dir, "/figure_s1cII.pdf"))
-tSNE_PCA(mtec_wt_plot, "Ccl21a", save_plot = paste0(save_dir, "/figure_s1cIII.pdf"))
-tSNE_PCA(mtec_wt_plot, "Ascl1", save_plot = paste0(save_dir, "/figure_s1cIV.pdf"))
-tSNE_PCA(mtec_wt_plot, "Hmgb2", save_plot = paste0(save_dir, "/figure_s1cV.pdf"))
-tSNE_PCA(mtec_wt_plot, "Stmn1", save_plot = paste0(save_dir, "/figure_s1cVI.pdf"))
-tSNE_PCA(mtec_wt_plot, "Fezf2", save_plot = paste0(save_dir, "/figure_s1cVII.pdf"))
-tSNE_PCA(mtec_wt_plot, "Aire", save_plot = paste0(save_dir, "/figure_s1cVIII.pdf"))
-tSNE_PCA(mtec_wt_plot, "Tnfrsf11a", save_plot = paste0(save_dir, "/figure_s1cIX.pdf"))
-tSNE_PCA(mtec_wt_plot, "Spink5", save_plot = paste0(save_dir, "/figure_s1cX.pdf"))
-tSNE_PCA(mtec_wt_plot, "Cldn4", save_plot = paste0(save_dir, "/figure_s1cXI.pdf"))
-tSNE_PCA(mtec_wt_plot, "Trpm5", save_plot = paste0(save_dir, "/figure_s1cXII.pdf"))
-tSNE_PCA(mtec_wt_plot, "Dclk1", save_plot = paste0(save_dir, "/figure_s1cXIII.pdf"))
+tSNE_PCA(mtec_wt, "Ackr4", save_plot = paste0(save_dir, "/figure_s1cI.pdf"))
+tSNE_PCA(mtec_wt, "Prss16", save_plot = paste0(save_dir, "/figure_s1cII.pdf"))
+tSNE_PCA(mtec_wt, "Ccl21a", save_plot = paste0(save_dir, "/figure_s1cIII.pdf"))
+tSNE_PCA(mtec_wt, "Krt5", save_plot = paste0(save_dir, "/figure_s1cIV.pdf"))
+tSNE_PCA(mtec_wt, "Hmgb2", save_plot = paste0(save_dir, "/figure_s1cV.pdf"))
+tSNE_PCA(mtec_wt, "Stmn1", save_plot = paste0(save_dir, "/figure_s1cVI.pdf"))
+tSNE_PCA(mtec_wt, "Fezf2", save_plot = paste0(save_dir, "/figure_s1cVII.pdf"))
+tSNE_PCA(mtec_wt, "Aire", save_plot = paste0(save_dir, "/figure_s1cVIII.pdf"))
+tSNE_PCA(mtec_wt, "Tnfrsf11a", save_plot = paste0(save_dir, "/figure_s1cIX.pdf"))
+tSNE_PCA(mtec_wt, "Krt10", save_plot = paste0(save_dir, "/figure_s1cX.pdf"))
+tSNE_PCA(mtec_wt, "Cldn4", save_plot = paste0(save_dir, "/figure_s1cXI.pdf"))
+tSNE_PCA(mtec_wt, "Trpm5", save_plot = paste0(save_dir, "/figure_s1cXII.pdf"))
+tSNE_PCA(mtec_wt, "Dclk1", save_plot = paste0(save_dir, "/figure_s1cXIII.pdf"))
 
 # Supplemental Figure 1d heatmap of DE genes
 # Heatmap of all TFs with interesting TFs highlighted
@@ -752,7 +758,9 @@ comparison_list <- names(mtec_wt@assay$DE)
 clusters <- lapply(comparison_list, get_slots)
 clusters <- unique(unlist(clusters))
 all_clusters <- sapply(clusters, cluster_gene_list,
-                       cluster_list = comparison_list, USE.NAMES = TRUE)
+                       cluster_list = comparison_list,
+                       seurat_object = mtec_wt,
+                       USE.NAMES = TRUE)
 
 all_clusters_but_ea <- all_clusters
 all_clusters_but_ea$Early_Aire <- NULL
@@ -806,6 +814,13 @@ fig_list <- c(fig_list, "figure_s2")
 print("supplemental_figure_3")
 
 mtec_wt <- Seurat::SetAllIdent(mtec_wt, id = "stage")
+# Supplemental Figure 1b umap colored by original cluster
+tSNE_PCA(mtec, "res.0.6",show_legend = FALSE,
+  save_plot = paste0(save_dir, "/figure_s3aIII.pdf"))
+
+tSNE_PCA(mtec, "res.0.6", show_legend = TRUE,
+  save_plot = paste0(save_dir, "/figure_s3aIV.pdf"))
+
 
 # Supplental Figure 3a Dotplot of Aire trace
 stage_levels <- c("cTEC", "Ccl21a_high", "TAC_TEC",
@@ -814,7 +829,7 @@ stage_levels <- c("cTEC", "Ccl21a_high", "TAC_TEC",
 mtec_no_un@ident <- factor(mtec_no_un@ident,
    levels = stage_levels)
 pdf(paste0(save_dir, "/figure_s3aI.pdf"))
-dot_plot <- Seurat::DotPlot(mtec_no_un, genes.plot = rev(markers_to_plot_full),
+dot_plot <- Seurat::DotPlot(mtec_no_un, genes.plot = genes_ea_unique,
                             cols.use = c("blue", "red"), x.lab.rot = T,
                             plot.legend = F, dot.scale = 8, do.return = T)
 
@@ -822,9 +837,17 @@ dot_plot <- Seurat::DotPlot(mtec_no_un, genes.plot = rev(markers_to_plot_full),
 dev.off()
 
 pdf(paste0(save_dir, "/figure_s3aII.pdf"))
-dot_plot <- Seurat::DotPlot(mtec_no_un, genes.plot = rev(markers_to_plot_full),
+dot_plot <- Seurat::DotPlot(mtec_no_un, genes.plot = genes_ea_unique,
                             cols.use = c("blue", "red"), x.lab.rot = T,
                             plot.legend = T, dot.scale = 8, do.return = T)
+dev.off()
+
+pdf(paste0(save_dir, "/figure_s3aIII.pdf"), width = 12, height = 8)
+
+dot_plot <- dot_plot + theme(axis.text.x = element_text(colour = text_color))
+
+dot_plot
+
 dev.off()
 
 # Supplemental Figure 3b Jitter plots of cycling with markers from AT
@@ -849,7 +872,7 @@ fig_list <- c(fig_list, "supplemental_figure_3")
 print("supplemental_figure_4")
 
 # Supplemental Figure 4a UMAP of original cluster
-tSNE_PCA(mtecCombined, "res.0.6", save_plot = paste0(save_dir, "/figure_s4a.pdf"))
+tSNE_PCA(mtecCombined_with_un, "res.0.6", save_plot = paste0(save_dir, "/figure_s4a.pdf"))
 
 # Supplemental Figure 4b Umap of stage recovery
 plot_names <- list(isoControlBeg = paste0(save_dir, "/figure_s4bI.pdf"),
@@ -865,18 +888,18 @@ lapply(names(plot_names), function(x) full_umap(mtecCombined,
 
 # Supplemental Figure 4c UMAP of marker genes
 tSNE_PCA(mtecCombined_with_un, "Ackr4", save_plot = paste0(save_dir, "/figure_s4cI.pdf"))
-tSNE_PCA(mtecCombined_with_un, "Psmb11", save_plot = paste0(save_dir, "/figure_s4cII.pdf"))
+tSNE_PCA(mtecCombined_with_un, "Prss16", save_plot = paste0(save_dir, "/figure_s4cII.pdf"))
 tSNE_PCA(mtecCombined_with_un, "Ccl21a", save_plot = paste0(save_dir, "/figure_s4cIII.pdf"))
 tSNE_PCA(mtecCombined_with_un, "Krt5", save_plot = paste0(save_dir, "/figure_s4cIV.pdf"))
-tSNE_PCA(mtecCombined_with_un, "Krt8", save_plot = paste0(save_dir, "/figure_s4cV.pdf"))
-tSNE_PCA(mtecCombined_with_un, "Ascl1", save_plot = paste0(save_dir, "/figure_s4cVI.pdf"))
+tSNE_PCA(mtecCombined_with_un, "Hmgb2", save_plot = paste0(save_dir, "/figure_s4cV.pdf"))
+tSNE_PCA(mtecCombined_with_un, "Stmn1", save_plot = paste0(save_dir, "/figure_s4cVI.pdf"))
 tSNE_PCA(mtecCombined_with_un, "Fezf2", save_plot = paste0(save_dir, "/figure_s4cVII.pdf"))
 tSNE_PCA(mtecCombined_with_un, "Aire", save_plot = paste0(save_dir, "/figure_s4cVIII.pdf"))
 tSNE_PCA(mtecCombined_with_un, "Tnfrsf11a", save_plot = paste0(save_dir, "/figure_s4cIX.pdf"))
-tSNE_PCA(mtecCombined_with_un, "Spink5", save_plot = paste0(save_dir, "/figure_s4cX.pdf"))
+tSNE_PCA(mtecCombined_with_un, "Krt10", save_plot = paste0(save_dir, "/figure_s4cX.pdf"))
 tSNE_PCA(mtecCombined_with_un, "Trpm5", save_plot = paste0(save_dir, "/figure_s4cXI.pdf"))
 tSNE_PCA(mtecCombined_with_un, "Dclk1", save_plot = paste0(save_dir, "/figure_s4cXII.pdf"))
-tSNE_PCA(mtecCombined_with_un, "Pou2f3", save_plot = paste0(save_dir, "/figure_s4cXIII.pdf"))
+tSNE_PCA(mtecCombined_with_un, "Cldn4", save_plot = paste0(save_dir, "/figure_s4cXIII.pdf"))
 tSNE_PCA(mtecCombined_with_un, "GFP", save_plot = paste0(save_dir, "/figure_s4cXIV.pdf"))
 
 fig_list <- c(fig_list, "supplemental_figure_4")
@@ -906,10 +929,10 @@ dev.off()
 # Supplemental Figure 5c expression of other Ccl21 genes (Ccl21c is not in any gene list)
 trio_plots_median(mtecCombined, geneset = c("Ccl21a", "Ccl21a.1", "Ccl21b.1"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
-  plot_jitter = FALSE, color = stage_color, sep_by = "pub_exp",
+  plot_jitter = FALSE, color = stage_color, sep_by = "stage",
   save_plot = paste0(save_dir, "/figure_s5c.pdf"))
 
-# Supplemental Figure 5d Flow of Ki67 cells in ablation
+
 
 fig_list <- c(fig_list, "supplemental_figure_5")
 #########################
@@ -944,14 +967,20 @@ mtecCombExp@meta.data$db_neg <- mtecCombExp@meta.data$Ccl21a <= 4 &
   mtecCombExp@meta.data$Aire <= 0
 
 mtecComb_cycle <- Seurat::SubsetData(mtecCombExp, ident.remove = "aireTrace")
-cells_keep <- rownames(mtecComb_cycle@meta.data[
-  mtecComb_cycle@meta.data$cycle_phase == "G2M", ])
-mtecComb_cycle <- Seurat::SubsetData(mtecComb_cycle, cells.use = cells_keep)
+# cells_keep <- rownames(mtecComb_cycle@meta.data[
+#   mtecComb_cycle@meta.data$cycle_phase == "G2M", ])
+# mtecComb_cycle <- Seurat::SubsetData(mtecComb_cycle, cells.use = cells_keep)
 
-blue_palette <- c(Aire_pos = "#111E6C",
-                  Ccl21a_pos = "#008081",
-                  Both_pos = "#0080FF",
-                  Both_neg = "#4C516D")
+mtecComb_cycle <- Seurat::SetAllIdent(mtecComb_cycle, id = "stage")
+mtecComb_cycle <- Seurat::SubsetData(mtecComb_cycle, ident.use = "TAC_TEC")
+
+blue_palette <- c(percent_Aire = "#111E6C",
+                  percent_Ccl21a = "#008081",
+                  percent_db_pos = "#0080FF",
+                  percent_db_neg = "#4C516D")
+
+timepoints <- c("isoControlBeg", "isoControlEnd", "timepoint1",
+                "timepoint2", "timepoint3", "timepoint5")
 
 percent_Aire <- sapply(timepoints, USE.NAMES = TRUE,
   function(x) percent_ident(mtecComb_cycle,
@@ -982,7 +1011,8 @@ percent_all_m <- tidyr::gather(data = percent_all, key = classification,
 pdf(paste0(save_dir, "/figure_s6c.pdf"))
 ggplot2::ggplot(percent_all_m, ggplot2::aes(x = experiment, y = percent,
   fill = classification)) +
-  ggplot2::geom_bar(position = "stacked", stat = "identity")
+  ggplot2::geom_bar(position = "stack", stat = "identity") +
+  ggplot2::scale_fill_manual(values = blue_palette)
 dev.off()
 
 # Supplemental Figure 6d bar plots of cycling counts
@@ -999,7 +1029,10 @@ count_db_neg <- sapply(timepoints, USE.NAMES = TRUE,
   function(x) percent_ident(mtecComb_cycle,
   data_set = x, meta_data_col = "exp", ident = "db_neg", count = TRUE))
 
-
+blue_palette <- c(count_Aire = "#111E6C",
+                  count_Ccl21a = "#008081",
+                  count_db_pos = "#0080FF",
+                  count_db_neg = "#4C516D")
 
 count_all <- data.frame(count_Aire = count_Aire,
                         count_Ccl21a = count_Ccl21,
@@ -1010,13 +1043,16 @@ count_all$experiment <- rownames(count_all)
 
 
 count_all_m <- tidyr::gather(data = count_all, key = classification,
-  value = percent, percent_Aire:percent_db_neg,
+  value = percent, count_Aire:count_db_neg,
   factor_key = TRUE)
 pdf(paste0(save_dir, "/figure_s6d.pdf"))
 ggplot2::ggplot(count_all_m, ggplot2::aes(x = experiment, y = percent,
   fill = classification)) +
-  ggplot2::geom_bar(position = "dodge", stat = "identity")
+  ggplot2::geom_bar(position = "dodge", stat = "identity") +
+  ggplot2::scale_fill_manual(values = blue_palette)
 dev.off()
+
+# Supplemental Figure 6e Flow of Ki67 cells in ablation
 
 fig_list <- c(fig_list, "supplemental_figure_6")
 

@@ -7,20 +7,11 @@ load("/home/kwells4/mTEC_dev/mtec_snakemake/allSamples/analysis_outs/seurat_allS
 timepoints <- c("isoControlBeg", "isoControlEnd", "timepoint1",
 	"timepoint2", "timepoint3", "timepoint5")
 
-pdf("/home/kwells4/mTEC_dev/mtec_snakemake/allSamples/analysis_outs/mark_umap.pdf")
+pdf("/home/kwells4/mTEC_dev/mtec_snakemake/allSamples/analysis_outs/alice_umap.pdf")
 
 lapply(timepoints, function(x) full_umap(mtecCombined,
-  data_set = x, col_by = "Aire",
+  data_set = x, col_by = "5330417C22Rik",
   show_legend = TRUE))
-
-lapply(timepoints, function(x) full_umap(mtecCombined,
-  data_set = x, col_by = "Fezf2",
-  show_legend = TRUE))
-
-lapply(timepoints, function(x) full_umap(mtecCombined,
-  data_set = x, col_by = "Tnfrsf11a",
-  show_legend = TRUE))
-
 
 stage_color_df <- data.frame("Cortico_medullary" = "#CC6600", "Ccl21a_high" = "#009933",
                             "Early_Aire" = "#0066CC", "Aire_positive" = "#660099",
@@ -36,7 +27,7 @@ plot_trio_subset <- function(seurat_object, subset_on = NULL, ...) {
 	trio_plots(seurat_object, plot_name = subset_on, ...)
 }
 
-geneset <- c("Tnfrsf11a", "Fezf2", "Ccl21a")
+geneset <- c("5330417C22Rik", "Aire", "Trpm5")
 
 mtecCombined <- Seurat::SetAllIdent(mtecCombined, "exp")
 

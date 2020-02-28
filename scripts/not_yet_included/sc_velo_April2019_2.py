@@ -11,11 +11,11 @@ scv.settings.set_figure_params('scvelo')
 
 working_dir = "/home/kwells4/mTEC_dev/mtec_snakemake/"
 
-seurat_cells = working_dir + "not_yet_included/seurat_info.csv"
-output = working_dir + "/figure_output/figure_2d.pdf"
+seurat_cells = working_dir + "not_yet_included/seurat_info_new.csv"
+output = working_dir + "/figure_output/figure_2d_new2.pdf"
 input_loom = working_dir + "not_yet_included/wt_velocyto.loom"
 seurat_df = pd.read_csv(seurat_cells, index_col = 0)
-supplement_output = working_dir +"/figure_output/supplemental_scvelo.pdf"
+supplement_output = working_dir +"/figure_output/supplemental_scvelo_oct_2019.pdf"
 
 seurat_cell_list = list(seurat_df.index)
 adata = scv.read(input_loom, sparse = True, cache = True)
@@ -49,11 +49,11 @@ adata.obsm["X_umap"] = umap_coord
 scv.tl.velocity_embedding(adata, basis='umap')
 
 
-
+# change #666666 to #ffffff as a cheat
 with PdfPages(output) as pdf:
-	adata.uns["clusters_colors"] = ("#660099", "#009933", "#CC6600", "#0066CC", "#FF0000", "#990000", "#666666")
+	adata.uns["clusters_colors"] = ("#660099", "#009933", "#CC6600", "#0066CC", "#FF0000", "#990000", "#FFFFFF")
 	plt.figure(None,(8,8))
-	scv.pl.velocity_embedding_stream(adata, legend_loc = "none")
+	scv.pl.velocity_embedding_stream(adata, legend_loc = "none", arrow_color = "black")
 	pdf.savefig()
 	plt.close()
 

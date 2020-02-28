@@ -45,6 +45,7 @@ output_file <- snakemake@output[[1]]
 mtecCombined <- get(load(input_file))
 
 # Subset the Seurat object to be only the cell population for futher analysis
+mtecCombined <- Seurat::SetAllIdent(mtecCombined, id = "stage")
 mtecSub <- mtecCombined
 mtecSub@assay$ablation_DE <- NULL
 mtec_subset <- Seurat::SubsetData(mtecSub, ident.use = subset_name, subset.raw = TRUE)

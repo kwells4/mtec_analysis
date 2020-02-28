@@ -987,3 +987,214 @@ dropout_percent <- function(raw_reads, gene_list = NULL){
     return(percents)
   }
 }
+
+trio_plots_median <- function(seurat_object, geneset, cell_cycle = FALSE,
+                       plot_jitter = TRUE, plot_violin = FALSE,
+                       jitter_and_violin = FALSE, color = NULL,
+                       sep_by = "cluster", save_plot = NULL,
+                       nrow = NULL, ncol = NULL, group_color = TRUE){
+  gene_list_stage <- c()
+  if (!(is.null(save_plot))){
+    extension <- substr(save_plot, nchar(save_plot)-2, nchar(save_plot))
+    if (extension == "pdf"){
+      pdf(save_plot)
+    } else if (extension == "png") {
+      png(save_plot)
+    } else {
+      print("save plot must be .png or .pdf")
+    }
+  }
+  if (plot_jitter) {
+    if (group_color) {
+      # Make a jitter plot based on expression of each gene given in the gene
+      # set color by stage
+      for (gene in geneset) {
+        gene_stage <- jitter_plot(seurat_object, gene, sep_by,
+                                color = color)
+    
+        # Add this plot object to a list
+        gene_list_stage[[gene]] <- gene_stage
+      }
+    
+      # Make a plot consisting of all plots made above
+      gridExtra::grid.arrange(grobs = gene_list_stage, nrow = length(geneset))
+    }
+    # Make jitter plots colored by cell cycle stage
+    if(cell_cycle){
+      gene_list_cycle <- c()
+      for (gene in geneset) {
+        gene_cycle <- jitter_plot(seurat_object, gene, "stage", "cycle_phase",
+                                 color = c("black", "red", "purple"))
+    
+        gene_list_cycle[[gene]] <- gene_cycle
+      }
+    
+      # Arrange all plots into one figure
+      gridExtra::grid.arrange(grobs = gene_list_cycle, nrow = length(geneset))
+    }
+  }
+  if (plot_violin || jitter_and_violin) {
+    for (gene in geneset) {
+      gene_stage <- violin_plot(seurat_object, gene, sep_by,
+                                color = color,
+                                plot_jitter = jitter_and_violin)
+      gene_stage <- gene_stage +
+        ggplot2::stat_summary(fun.y = median, geom = "point", size = 2)
+      
+      # Add this plot object to a list
+      gene_list_stage[[gene]] <- gene_stage
+    }
+    
+    # Make a plot consisting of all plots made above
+    if (is.null(nrow)){
+      nrow <- length(geneset)
+    }
+    if (is.null(ncol)){
+      ncol <- 1
+    }
+    gridExtra::grid.arrange(grobs = gene_list_stage, nrow = nrow, ncol = ncol)
+    
+  }
+  if (!(is.null(save_plot))){
+    dev.off()
+  }
+}
+
+
+get_slots <- function(comparison){
+  return(strsplit(comparison, "v(?=[A-Z])", perl = TRUE))
+}
+
+get_genes <- function(comparison, cluster, seurat_object){
+  split_comparison <- strsplit(comparison, "v(?=[A-Z])", perl = TRUE)
+  if(split_comparison[[1]][1] == cluster){
+    gene_table <- seurat_object@assay$DE[[comparison]]
+    gene_table <- gene_table[gene_table$avg_logFC > 0, ]
+    gene_list <- rownames(gene_table)
+  } else if(split_comparison[[1]][2] == cluster) {
+    gene_table <- seurat_object@assay$DE[[comparison]]
+    gene_table <- gene_table[gene_table$avg_logFC < 0, ] 
+    gene_list <- rownames(gene_table)
+  } else {
+    gene_list <- NULL
+  }
+  
+  return(gene_list)
+}
+
+cluster_gene_list <- function(cluster, cluster_list, seurat_object){
+  full_list <- lapply(cluster_list, get_genes, cluster = cluster,
+    seurat_object = seurat_object)
+  short_list <- unique(unlist(full_list))
+  return(short_list)
+}
+
+plot_heatmap_new <- function(mtec, cell_color = NULL, subset_list = NULL,
+  color_list = NULL, color_list2 = NULL, order_cells = TRUE,
+  seed = 0){
+  mtec_data <- mtec@data
+  
+  
+  # Subset the list if desired (ie by a list of specific genes)
+  if (!is.null(subset_list)){
+    mtec_data <- mtec_data[rownames(mtec_data) %in% subset_list, ]
+  }
+  mtec_data <- as.matrix(mtec_data)
+  
+  # Center values to plot on heatmap
+  mtec_data_heatmap <- t(scale(t(mtec_data), scale = FALSE))
+  cluster <- as.data.frame(mtec@ident)
+  names(cluster) <- "cluster_val"
+  
+  # Order cells by cluster
+  if (order_cells){
+    cluster <- cluster[order(cluster$cluster_val), , drop=FALSE]
+    mtec_data_heatmap <- mtec_data_heatmap[, match(rownames(cluster),
+                                                   colnames(mtec_data_heatmap))]
+  }
+
+  colors <- as.numeric(cluster$cluster_val)
+  if (!is.null(cell_color)) {
+    col1 <- cell_color
+  } else {
+    col1 <- RColorBrewer::brewer.pal(length(levels(cluster$cluster_val)), "Set1")
+  }
+  
+  cols <- rep("black", nrow(mtec_data_heatmap))
+  
+  # Color some text red if desired
+  if (!is.null(color_list)){
+    cols[row.names(mtec_data_heatmap) %in% color_list] <- "red"
+  }
+  if (!is.null(color_list2)){
+    cols[row.names(mtec_data_heatmap) %in% color_list2] <- "blue"
+  }
+  
+  sep_list <- lapply(1:length(unique(colors)), function(x) grep(x, colors)[1])
+  sep_list <- unlist(sep_list)
+
+  # Seed for reporducibility
+  set.seed(seed)
+  gplots::heatmap.2(mtec_data_heatmap,
+                    density.info  = "none",
+                    labCol        = FALSE,
+                    Colv          = !order_cells,
+                    colRow        = cols,
+                    ColSideColors = col1[colors],
+                    colsep        = sep_list,
+                    sepcolor      = "white",
+                    trace         = "none",
+                    col           = grDevices::colorRampPalette(c("blue", "yellow")),
+                    dendrogram    = "row")
+
+
+}
+
+percent_ident <- function(seurat_object, data_set, meta_data_col, ident, count = FALSE){
+  cells_use <- rownames(seurat_object@meta.data)[
+    seurat_object@meta.data[[meta_data_col]] == data_set]
+  new_seurat <- Seurat::SubsetData(seurat_object, cells.use = cells_use)
+  ident_cells <- table(new_seurat@meta.data[[ident]])
+  print(ident_cells)
+  if (count){
+    if ("TRUE" %in% names(ident_cells)){
+      ident_count <- ident_cells[["TRUE"]]
+    } else {
+      ident_count <- 0
+    }
+    return(ident_count)
+  } else {
+    if("TRUE" %in% names(ident_cells)){
+      ident_percent <- (ident_cells[["TRUE"]])/nrow(new_seurat@meta.data) * 100
+    }
+    else{
+      ident_percent <- 0
+    }
+    #names(ident_percent) <- data_set
+    return(ident_percent)
+  }
+}
+
+plot_marker_heatmap <- function(mtec, subset_val, gene_df, subset_by = "exp", save_plot = NULL){
+  if (!(is.null(save_plot))){
+    extension <- substr(save_plot, nchar(save_plot)-2, nchar(save_plot))
+    if (extension == "pdf"){
+      pdf(save_plot)
+    } else if (extension == "png") {
+      png(save_plot)
+    } else {
+      print("save plot must be .png or .pdf")
+    }
+  }
+  print(save_plot)
+  print(subset_val)
+  mtec <- Seurat::SetAllIdent(mtec, id = subset_by)
+  mtec_sub <- Seurat::SubsetData(mtec, ident.use = subset_val)
+  mtec_sub <- Seurat::SetAllIdent(mtec_sub, id = "stage")
+  print(Seurat::DoHeatmap(object = mtec_sub, genes.use = gene_df$gene, slim.col.label = TRUE,
+    remove.key = TRUE, group.label.rot = TRUE))
+  #heatmap <- heatmap + theme(axis.text.x = element_text(angle = 45))
+  if (!(is.null(save_plot))){
+    dev.off()
+  }
+}

@@ -1,5 +1,7 @@
 library(mTEC.10x.pipeline)
 library(gplots)
+library(ggplot2)
+library(reshape)
 load("/home/kwells4/mTEC_dev/mtec_snakemake/aireTrace/analysis_outs/seurat_aireTrace.rda")
 
 get_slots <- function(comparison){
@@ -80,9 +82,23 @@ ea_gene_df$regulation_of_differentiation <- 0
 ea_gene_df$regulation_of_differentiation[rownames(ea_gene_df) %in% regulation_of_differentiation] <- 1
 ea_gene_df$genes_ea_unique <- NULL
 
-pdf("/home/kwells4/mTEC_dev/mtec_snakemake/aireTrace/analysis_outs/gene_list.pdf")
-heatmap.2(as.matrix(ea_gene_df), Rowv = FALSE, Colv=FALSE, col=c("white", "black"),
-  trace = "none", density.info = "none", dendrogram = "none", cexRow = 0.5)
+pdf("/home/kwells4/mTEC_dev/mtec_snakemake/figure_output/Figure_s1c.pdf")
+
+ea_gene_df$gene <- rownames(ea_gene_df)
+ea_gene_df_m <- melt(ea_gene_df)
+ea_gene_df_m[ea_gene_df_m$value == 0, ]$value <- "gene not in GO term"
+ea_gene_df_m[ea_gene_df_m$value == 1, ]$value <- "gene in GO term"
+ea_gene_df_m$value <- factor(ea_gene_df_m$value)
+
+
+ggplot(ea_gene_df_m, aes(x = variable, y = gene, fill = value)) +
+  geom_tile(color = "white") +
+  coord_equal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = c("black", "white")) +
+  xlab("GO term")
+
+
 dev.off()
 
 # Make venn diagram

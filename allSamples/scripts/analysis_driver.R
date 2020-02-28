@@ -87,6 +87,9 @@ if (!identical(rownames(mtecCombined@meta.data), names(mtecCombined@ident))) {
   mtecCombined@meta.data <- mtecCombined@meta.data[match(rownames(mtecCombined@ident),
                                rownames(mtecCombined@meta.data)), , drop = FALSE]
 }
+
+mtecCombined_full <- mtecCombined
+
 mtecCombined <- Seurat::SetAllIdent(mtecCombined, id = "stage")
 mtecCombined <- Seurat::SubsetData(mtecCombined, ident.remove = "unknown")
 
@@ -143,4 +146,4 @@ tSNE_PCA(mtecCombined, "cycle_phase", color = c("black", "red", "purple"))
 dev.off()
 
 save(sce.umap, file = slingshot_obj)
-save(mtecCombined, file = output_object)
+save(mtecCombined_full, file = output_object)
