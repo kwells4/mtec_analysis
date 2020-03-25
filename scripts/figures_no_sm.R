@@ -494,6 +494,12 @@ ggplot2::ggplot(percent_cycling, ggplot2::aes(x = experiment,
 
 dev.off()
 
+stat_comparisons <- list(c("Ctl wk 10", "Ctl wk 2"),
+                         c("Ctl wk 10", "wk 2"),
+                         c("Ctl wk 10", "wk 4"),
+                         c("Ctl wk 10", "wk 6"),
+                         c("Ctl wk 10", "wk 10"))
+
 # Figure 5c Violin plots of genes of interest
 trio_plots_median(projenitor_mtec, geneset = c("Aire", "Ccl21a", "Fezf2"),
   cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
@@ -806,6 +812,66 @@ trio_plots_median(mtec_wt_plot, geneset = c("Pou5f1", "Sox2", "Krt15"),
   color = stage_color, sep_by = "stage",
   save_plot = paste0(save_dir, "/figure_s2c.pdf"))
 
+
+# Supplemental Figure 2d bar plots of cycling counts
+mtec_wt_plot@meta.data$Ccl21a <- mtec_wt_plot@data["Ccl21a", ]
+mtec_wt_plot@meta.data$Aire <- mtec_wt_plot@data["Aire", ]
+mtec_wt_plot@meta.data$db_pos <- mtec_wt_plot@meta.data$Ccl21a > 4 & 
+  mtec_wt_plot@meta.data$Aire > 0.5
+
+mtec_wt_plot@meta.data$Aire_exp <- mtec_wt_plot@meta.data$Aire > 0.5 &
+  mtec_wt_plot@meta.data$Ccl21a <= 4
+mtec_wt_plot@meta.data$Ccl21a_exp <- mtec_wt_plot@meta.data$Ccl21a > 4 &
+  mtec_wt_plot@meta.data$Aire <= 0.5
+mtec_wt_plot@meta.data$Aire_and_Ccl21a <- mtec_wt_plot@meta.data$Aire > 0.5 &
+  mtec_wt_plot@meta.data$Ccl21a > 4
+mtec_wt_plot@meta.data$db_neg <- mtec_wt_plot@meta.data$Ccl21a <= 4 &
+  mtec_wt_plot@meta.data$Aire <= 0.5
+
+mtec_tac <- mtec_wt_plot
+
+mtec_tac <- Seurat::SetAllIdent(mtec_tac, id = "stage")
+mtec_tac <- Seurat::SubsetData(mtec_tac, ident.use = "TAC_TEC")
+
+cell_cycle_phase <- c("G1", "G2M", "S")
+
+count_Aire <- sapply(cell_cycle_phase, USE.NAMES = TRUE,
+  function(x) percent_ident(mtec_tac,
+  data_set = x, meta_data_col = "cycle_phase", ident = "Aire_exp", count = TRUE))
+count_Ccl21 <- sapply(cell_cycle_phase, USE.NAMES = TRUE,
+  function(x) percent_ident(mtec_tac,
+  data_set = x, meta_data_col = "cycle_phase", ident = "Ccl21a_exp", count = TRUE))
+count_dp_pos <- sapply(cell_cycle_phase, USE.NAMES = TRUE,
+  function(x) percent_ident(mtec_tac,
+  data_set = x, meta_data_col = "cycle_phase", ident = "Aire_and_Ccl21a", count = TRUE))
+count_db_neg <- sapply(cell_cycle_phase, USE.NAMES = TRUE,
+  function(x) percent_ident(mtec_tac,
+  data_set = x, meta_data_col = "cycle_phase", ident = "db_neg", count = TRUE))
+
+blue_palette <- c(count_Aire = "#111E6C",
+                  count_Ccl21a = "#008081",
+                  count_db_pos = "#0080FF",
+                  count_db_neg = "#4C516D")
+
+count_all <- data.frame(count_Aire = count_Aire,
+                        count_Ccl21a = count_Ccl21,
+                        count_db_pos = count_dp_pos,
+                        count_db_neg = count_db_neg)
+
+count_all$cycle_phase <- rownames(count_all)
+
+
+count_all_m <- tidyr::gather(data = count_all, key = classification,
+  value = percent, count_Aire:count_db_neg,
+  factor_key = TRUE)
+pdf(paste0(save_dir, "/figure_s2d.pdf"))
+ggplot2::ggplot(count_all_m, ggplot2::aes(x = cycle_phase, y = percent,
+  fill = classification)) +
+  ggplot2::geom_bar(position = "dodge", stat = "identity") +
+  ggplot2::scale_fill_manual(values = blue_palette)
+dev.off()
+
+
 fig_list <- c(fig_list, "figure_s2")
 
 ######################### 
@@ -957,14 +1023,14 @@ mtecCombExp@meta.data$Aire <- mtecCombExp@data["Aire", ]
 mtecCombExp@meta.data$db_pos <- mtecCombExp@meta.data$Ccl21a > 4 & 
   mtecCombExp@meta.data$Aire > 0.5
 
-mtecCombExp@meta.data$Aire_exp <- mtecCombExp@meta.data$Aire > 0 &
+mtecCombExp@meta.data$Aire_exp <- mtecCombExp@meta.data$Aire > 0.5 &
   mtecCombExp@meta.data$Ccl21a <= 4
 mtecCombExp@meta.data$Ccl21a_exp <- mtecCombExp@meta.data$Ccl21a > 4 &
-  mtecCombExp@meta.data$Aire <= 0
-mtecCombExp@meta.data$Aire_and_Ccl21a <- mtecCombExp@meta.data$Aire > 0 &
+  mtecCombExp@meta.data$Aire <= 0.5
+mtecCombExp@meta.data$Aire_and_Ccl21a <- mtecCombExp@meta.data$Aire > 0.5 &
   mtecCombExp@meta.data$Ccl21a > 4
 mtecCombExp@meta.data$db_neg <- mtecCombExp@meta.data$Ccl21a <= 4 &
-  mtecCombExp@meta.data$Aire <= 0
+  mtecCombExp@meta.data$Aire <= 0.5
 
 mtecComb_cycle <- Seurat::SubsetData(mtecCombExp, ident.remove = "aireTrace")
 # cells_keep <- rownames(mtecComb_cycle@meta.data[
@@ -1110,8 +1176,12 @@ cumFreqPlot <- ggplot2::ggplot(cumFreq_df, ggplot2::aes(x = ID, y = list_percent
 
 ggplot2::ggsave(paste0(save_dir, "/figure_s7b.pdf"), plot = cumFreqPlot)
 
+to_plot_sup <- c("tra_fantom", "all_other_genes", "aire_genes", "fezf2_genes")
+
+counts_df_plot_sup <- counts_df_m[counts_df_m$gene_list %in% to_plot_sup, ]
+
 # Supplemental Figure 7c box plots for gene counts after downsampling
-full_plot <- ggplot2::ggplot(counts_df_plot, ggplot2::aes(x = gene_list,
+full_plot <- ggplot2::ggplot(counts_df_plot_sup, ggplot2::aes(x = gene_list,
                                                           y = gene_count,
                                                           fill = pub_exp)) +
   ggplot2::geom_boxplot() +

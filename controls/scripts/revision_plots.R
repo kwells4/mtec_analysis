@@ -38,6 +38,9 @@ mtec_wt <- Seurat::SubsetData(mtec_wt, ident.remove = "unknown")
 plotDimRed(mtec_wt, col_by = "Mki67")
 plotDimRed(mtec_wt, col_by = "Pdpn")
 plotDimRed(mtec_wt, col_by = "Hmmr")
+plotDimRed(mtec_wt, col_by = "Cd44")
+plotDimRed(mtec_wt, col_by = "Fut4")
+plotDimRed(mtec_wt, col_by = "Lgr5")
 plotDimRed(mtec_wt, col_by = "stage", color = stage_color, show_legend = FALSE)
 
 

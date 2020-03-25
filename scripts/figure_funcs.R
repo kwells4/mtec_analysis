@@ -992,7 +992,8 @@ trio_plots_median <- function(seurat_object, geneset, cell_cycle = FALSE,
                        plot_jitter = TRUE, plot_violin = FALSE,
                        jitter_and_violin = FALSE, color = NULL,
                        sep_by = "cluster", save_plot = NULL,
-                       nrow = NULL, ncol = NULL, group_color = TRUE){
+                       nrow = NULL, ncol = NULL, group_color = TRUE,
+                       stats = FALSE, comparisons = NULL){
   gene_list_stage <- c()
   if (!(is.null(save_plot))){
     extension <- substr(save_plot, nchar(save_plot)-2, nchar(save_plot))
@@ -1011,6 +1012,13 @@ trio_plots_median <- function(seurat_object, geneset, cell_cycle = FALSE,
       for (gene in geneset) {
         gene_stage <- jitter_plot(seurat_object, gene, sep_by,
                                 color = color)
+
+        if(stats){
+          gene_stage <- gene_stage + ggpubr::stat_compare_means()
+        }
+        if(!is.null(comparisons)){
+          gene_stage <- gene_stage + ggpubr::stat_compare_means(comparisons = comparisons)
+        } 
     
         # Add this plot object to a list
         gene_list_stage[[gene]] <- gene_stage
@@ -1040,6 +1048,13 @@ trio_plots_median <- function(seurat_object, geneset, cell_cycle = FALSE,
                                 plot_jitter = jitter_and_violin)
       gene_stage <- gene_stage +
         ggplot2::stat_summary(fun.y = median, geom = "point", size = 2)
+
+      if(stats){
+        gene_stage <- gene_stage + ggpubr::stat_compare_means()
+      }
+      if(!is.null(comparisons)){
+        gene_stage <- gene_stage + ggpubr::stat_compare_means(comparisons = comparisons)
+      }
       
       # Add this plot object to a list
       gene_list_stage[[gene]] <- gene_stage
@@ -1059,7 +1074,6 @@ trio_plots_median <- function(seurat_object, geneset, cell_cycle = FALSE,
     dev.off()
   }
 }
-
 
 get_slots <- function(comparison){
   return(strsplit(comparison, "v(?=[A-Z])", perl = TRUE))
