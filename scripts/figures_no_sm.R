@@ -817,16 +817,16 @@ trio_plots_median(mtec_wt_plot, geneset = c("Pou5f1", "Sox2", "Krt15"),
 mtec_wt_plot@meta.data$Ccl21a <- mtec_wt_plot@data["Ccl21a", ]
 mtec_wt_plot@meta.data$Aire <- mtec_wt_plot@data["Aire", ]
 mtec_wt_plot@meta.data$db_pos <- mtec_wt_plot@meta.data$Ccl21a > 4 & 
-  mtec_wt_plot@meta.data$Aire > 0.5
+  mtec_wt_plot@meta.data$Aire > 0
 
-mtec_wt_plot@meta.data$Aire_exp <- mtec_wt_plot@meta.data$Aire > 0.5 &
+mtec_wt_plot@meta.data$Aire_exp <- mtec_wt_plot@meta.data$Aire > 0 &
   mtec_wt_plot@meta.data$Ccl21a <= 4
 mtec_wt_plot@meta.data$Ccl21a_exp <- mtec_wt_plot@meta.data$Ccl21a > 4 &
   mtec_wt_plot@meta.data$Aire <= 0.5
-mtec_wt_plot@meta.data$Aire_and_Ccl21a <- mtec_wt_plot@meta.data$Aire > 0.5 &
+mtec_wt_plot@meta.data$Aire_and_Ccl21a <- mtec_wt_plot@meta.data$Aire > 0 &
   mtec_wt_plot@meta.data$Ccl21a > 4
 mtec_wt_plot@meta.data$db_neg <- mtec_wt_plot@meta.data$Ccl21a <= 4 &
-  mtec_wt_plot@meta.data$Aire <= 0.5
+  mtec_wt_plot@meta.data$Aire <= 0
 
 mtec_tac <- mtec_wt_plot
 
@@ -1021,16 +1021,16 @@ trio_plots_median(no_at_mtec, geneset = c("Hmgb2", "Tubb5", "Stmn1"), cell_cycle
 mtecCombExp@meta.data$Ccl21a <- mtecCombExp@data["Ccl21a", ]
 mtecCombExp@meta.data$Aire <- mtecCombExp@data["Aire", ]
 mtecCombExp@meta.data$db_pos <- mtecCombExp@meta.data$Ccl21a > 4 & 
-  mtecCombExp@meta.data$Aire > 0.5
+  mtecCombExp@meta.data$Aire > 0
 
-mtecCombExp@meta.data$Aire_exp <- mtecCombExp@meta.data$Aire > 0.5 &
+mtecCombExp@meta.data$Aire_exp <- mtecCombExp@meta.data$Aire > 0 &
   mtecCombExp@meta.data$Ccl21a <= 4
 mtecCombExp@meta.data$Ccl21a_exp <- mtecCombExp@meta.data$Ccl21a > 4 &
-  mtecCombExp@meta.data$Aire <= 0.5
-mtecCombExp@meta.data$Aire_and_Ccl21a <- mtecCombExp@meta.data$Aire > 0.5 &
+  mtecCombExp@meta.data$Aire <= 0
+mtecCombExp@meta.data$Aire_and_Ccl21a <- mtecCombExp@meta.data$Aire > 0 &
   mtecCombExp@meta.data$Ccl21a > 4
 mtecCombExp@meta.data$db_neg <- mtecCombExp@meta.data$Ccl21a <= 4 &
-  mtecCombExp@meta.data$Aire <= 0.5
+  mtecCombExp@meta.data$Aire <= 0
 
 mtecComb_cycle <- Seurat::SubsetData(mtecCombExp, ident.remove = "aireTrace")
 # cells_keep <- rownames(mtecComb_cycle@meta.data[
@@ -1398,6 +1398,30 @@ dropout_downsample_plot <- ggplot2::ggplot(dropout_downsample_m,
   ggplot2::ylab("dropout percent")
 
 ggplot2::ggsave(paste0(save_dir, "/figure_s9dII.pdf"), plot = dropout_downsample_plot)
+
+week_4 <- Seurat::SetAllIdent(mtecCombined_all, id = "exp")
+
+week_4 <- Seurat::SubsetData(week_4, ident.use = "timepoint2")
+
+counts <- week_4@data
+
+counts <- counts[rownames(counts) %in% gene_lists$tra_fantom,]
+
+counts <- counts[rowSums(data.frame(counts)) > 0, ]
+
+cell_count <- apply(counts, 1, function(x) sum(x>0))
+
+expr_genes <- names(cell_count[cell_count > 0])
+
+mtecCombined_all <- plot_gene_set(mtecCombined_all,
+    expr_genes, "expressed_tras", make_plot = FALSE)
+
+gene_sets <- c("expressed_tras", "tra_fantom", "aire_genes")
+
+trio_plots_median(mtecCombined_all, geneset = gene_sets,
+  cell_cycle = FALSE, plot_violin = TRUE, jitter_and_violin = FALSE,
+  plot_jitter = FALSE, color = timecourse_color, sep_by = "pub_exp",
+  save_plot = paste0(save_dir, "expressed_tras.pdf"))
 
 
 fig_list <- c(fig_list, "supplemental_figure_6")

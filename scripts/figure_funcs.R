@@ -1025,7 +1025,7 @@ trio_plots_median <- function(seurat_object, geneset, cell_cycle = FALSE,
       }
     
       # Make a plot consisting of all plots made above
-      gridExtra::grid.arrange(grobs = gene_list_stage, nrow = length(geneset))
+      plots <- gridExtra::grid.arrange(grobs = gene_list_stage, nrow = length(geneset))
     }
     # Make jitter plots colored by cell cycle stage
     if(cell_cycle){
@@ -1038,7 +1038,7 @@ trio_plots_median <- function(seurat_object, geneset, cell_cycle = FALSE,
       }
     
       # Arrange all plots into one figure
-      gridExtra::grid.arrange(grobs = gene_list_cycle, nrow = length(geneset))
+      plots <- gridExtra::grid.arrange(grobs = gene_list_cycle, nrow = length(geneset))
     }
   }
   if (plot_violin || jitter_and_violin) {
@@ -1067,11 +1067,14 @@ trio_plots_median <- function(seurat_object, geneset, cell_cycle = FALSE,
     if (is.null(ncol)){
       ncol <- 1
     }
-    gridExtra::grid.arrange(grobs = gene_list_stage, nrow = nrow, ncol = ncol)
+    plots <- gridExtra::grid.arrange(grobs = gene_list_stage, nrow = nrow, ncol = ncol)
     
   }
   if (!(is.null(save_plot))){
+    print(plots)
     dev.off()
+  } else {
+    return(plots)
   }
 }
 
