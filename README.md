@@ -1,6 +1,8 @@
-This snakemake pipeline contains all the necessary scripts to recreate the analysis for (eventual paper).
+This snakemake pipeline contains all the necessary scripts to recreate the analysis for the paper titled "Combined transient ablation and single cell RNA sequencing reveals the development of medullary thymic epithelial cells" published in eLife.
 
-Writen by Kristen Wells April 11, 2019. Last modified July 16, 2019
+All scripts necessary to complete the analysis are contained within this directory. The RMD of the full analysis is still in progress and will be updated as I have time..
+
+Writen by Kristen Wells April 11, 2019. Last modified December 2, 2020
 
 To use:
 
