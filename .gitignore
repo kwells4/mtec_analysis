@@ -5,7 +5,6 @@
 */*_mkfastq.mro
 */*_raw_data/
 */.snakemake
-*/analysis_outs/
 figure_output_old/
 */core*
 *.pdf
@@ -18,3 +17,6 @@ figure_output_old/
 not_yet_included/seurat_info.csv
 scripts/not_yet_included/cache/
 *.html
+!*/analysis_outs/
+*/analysis_outs/*
+!*/analysis_outs/*_meta.csv
